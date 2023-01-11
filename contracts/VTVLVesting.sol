@@ -24,7 +24,7 @@ contract VTVLVesting is Context, AccessProtected {
     * In other words, this represents the amount the contract is scheduled to pay out at some point if the 
     * owner were to never interact with the contract.
     */
-    uint112 public numTokensReservedForVesting = 0;
+    uint256 public numTokensReservedForVesting = 0;
 
     /**
     @notice A structure representing a single claim - supporting linear and cliff vesting.
@@ -39,9 +39,9 @@ contract VTVLVesting is Context, AccessProtected {
         
         // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
         // uint112 range: range 0 –                             5,192,296,858,534,827.
-        uint112 linearVestAmount; // total entitlement
+        uint256 linearVestAmount; // total entitlement
+        uint256 amountWithdrawn; // how much was withdrawn thus far - released at the cliffReleaseTimestamp
         uint112 cliffAmount; // how much is released at the cliff
-        uint112 amountWithdrawn; // how much was withdrawn thus far - released at the cliffReleaseTimestamp
         bool isActive; // whether this claim is active (or revoked)
     }    
 
@@ -61,17 +61,17 @@ contract VTVLVesting is Context, AccessProtected {
     /**
     @notice Emitted when someone withdraws a vested amount
     */
-    event Claimed(address indexed _recipient, uint112 _withdrawalAmount); 
+    event Claimed(address indexed _recipient, uint256 _withdrawalAmount); 
 
     /** 
     @notice Emitted when a claim is revoked
     */
-    event ClaimRevoked(address indexed _recipient, uint112 _numTokensWithheld, uint256 revocationTimestamp, Claim _claim);
+    event ClaimRevoked(address indexed _recipient, uint256 _numTokensWithheld, uint256 revocationTimestamp, Claim _claim);
     
     /** 
     @notice Emitted when admin withdraws.
     */
-    event AdminWithdrawn(address indexed _recipient, uint112 _amountRequested);
+    event AdminWithdrawn(address indexed _recipient, uint256 _amountRequested);
 
     // 
     /**
@@ -144,8 +144,8 @@ contract VTVLVesting is Context, AccessProtected {
     @param _claim The claim in question
     @param _referenceTs Timestamp for which we're calculating
      */
-    function _baseVestedAmount(Claim memory _claim, uint40 _referenceTs) internal pure returns (uint112) {
-        uint112 vestAmt = 0;
+    function _baseVestedAmount(Claim memory _claim, uint40 _referenceTs) internal pure returns (uint256) {
+        uint256 vestAmt = 0;
         
         // the condition to have anything vested is to be active
         if(_claim.isActive) {
@@ -158,7 +158,7 @@ contract VTVLVesting is Context, AccessProtected {
             // If we're past the cliffReleaseTimestamp, we release the cliffAmount
             // We don't check here that cliffReleaseTimestamp is after the startTimestamp 
             if(_referenceTs >= _claim.cliffReleaseTimestamp) {
-                vestAmt += _claim.cliffAmount;
+                vestAmt += uint256(_claim.cliffAmount);
             }
 
             // Calculate the linearly vested amount - this is relevant only if we're past the schedule start
@@ -173,7 +173,7 @@ contract VTVLVesting is Context, AccessProtected {
                 // Since fraction_of_interval_completed is truncatedCurrentVestingDurationSecs / finalVestingDurationSecs, the formula becomes
                 // truncatedCurrentVestingDurationSecs / finalVestingDurationSecs * linearVestAmount, so we can rewrite as below to avoid 
                 // rounding errors
-                uint112 linearVestAmount = _claim.linearVestAmount * truncatedCurrentVestingDurationSecs / finalVestingDurationSecs;
+                uint256 linearVestAmount = _claim.linearVestAmount * truncatedCurrentVestingDurationSecs / finalVestingDurationSecs;
 
                 // Having calculated the linearVestAmount, simply add it to the vested amount
                 vestAmt += linearVestAmount;
@@ -193,7 +193,7 @@ contract VTVLVesting is Context, AccessProtected {
     @param _referenceTs - The timestamp at which we want to calculate the vested amount.
     @dev Simply call the _baseVestedAmount for the claim in question
     */
-    function vestedAmount(address _recipient, uint40 _referenceTs) public view returns (uint112) {
+    function vestedAmount(address _recipient, uint40 _referenceTs) public view returns (uint256) {
         Claim storage _claim = claims[_recipient];
         return _baseVestedAmount(_claim, _referenceTs);
     }
@@ -203,7 +203,7 @@ contract VTVLVesting is Context, AccessProtected {
     @dev This fn is somewhat superfluous, should probably be removed.
     @param _recipient - The address for whom we're calculating
      */
-    function finalVestedAmount(address _recipient) public view returns (uint112) {
+    function finalVestedAmount(address _recipient) public view returns (uint256) {
         Claim storage _claim = claims[_recipient];
         return _baseVestedAmount(_claim, _claim.endTimestamp);
     }
@@ -212,7 +212,7 @@ contract VTVLVesting is Context, AccessProtected {
     @notice Calculates how much can we claim, by subtracting the already withdrawn amount from the vestedAmount at this moment.
     @param _recipient - The address for whom we're calculating
     */
-    function claimableAmount(address _recipient) external view returns (uint112) {
+    function claimableAmount(address _recipient) external view returns (uint256) {
         Claim storage _claim = claims[_recipient];
         return _baseVestedAmount(_claim, uint40(block.timestamp)) - _claim.amountWithdrawn;
     }
@@ -289,7 +289,7 @@ contract VTVLVesting is Context, AccessProtected {
         });
         // Our total allocation is simply the full sum of the two amounts, _cliffAmount + _linearVestAmount
         // Not necessary to use the more complex logic from _baseVestedAmount
-        uint112 allocatedAmount = _cliffAmount + _linearVestAmount;
+        uint256 allocatedAmount = _cliffAmount + _linearVestAmount;
 
         // Still no effects up to this point (and tokenAddress is selected by contract deployer and is immutable), so no reentrancy risk 
         require(tokenAddress.balanceOf(address(this)) >= numTokensReservedForVesting + allocatedAmount, "INSUFFICIENT_BALANCE");
@@ -368,13 +368,13 @@ contract VTVLVesting is Context, AccessProtected {
 
         // we can use block.timestamp directly here as reference TS, as the function itself will make sure to cap it to endTimestamp
         // Conversion of timestamp to uint40 should be safe since 48 bit allows for a lot of years.
-        uint112 allowance = vestedAmount(_msgSender(), uint40(block.timestamp));
+        uint256 allowance = vestedAmount(_msgSender(), uint40(block.timestamp));
 
         // Make sure we didn't already withdraw more that we're allowed.
         require(allowance > usrClaim.amountWithdrawn, "NOTHING_TO_WITHDRAW");
 
         // Calculate how much can we withdraw (equivalent to the above inequality)
-        uint112 amountRemaining = allowance - usrClaim.amountWithdrawn;
+        uint256 amountRemaining = allowance - usrClaim.amountWithdrawn;
 
         // "Double-entry bookkeeping"
         // Carry out the withdrawal by noting the withdrawn amount, and by transferring the tokens.
@@ -419,14 +419,14 @@ contract VTVLVesting is Context, AccessProtected {
         // Fetch the claim
         Claim storage _claim = claims[_recipient];
         // Calculate what the claim should finally vest to
-        uint112 finalVestAmt = finalVestedAmount(_recipient);
+        uint256 finalVestAmt = finalVestedAmount(_recipient);
 
         // No point in revoking something that has been fully consumed
         // so require that there be unconsumed amount
         require( _claim.amountWithdrawn < finalVestAmt, "NO_UNVESTED_AMOUNT");
 
         // The amount that is "reclaimed" is equal to the total allocation less what was already withdrawn
-        uint112 amountRemaining = finalVestAmt - _claim.amountWithdrawn;
+        uint256 amountRemaining = finalVestAmt - _claim.amountWithdrawn;
 
         // Deactivate the claim, and release the appropriate amount of tokens
         _claim.isActive = false;    // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much

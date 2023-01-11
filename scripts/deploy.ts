@@ -13,7 +13,7 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  const [deployer, acct2, acct3] = await ethers.getSigners();
+  const [deployer] = await ethers.getSigners();
   console.log(
     "Deploying the contracts with the account:",
     await deployer.getAddress()
@@ -31,15 +31,26 @@ async function main() {
 
   // We get the contract to deploy
   const VTVLVestingFactory = await ethers.getContractFactory("VTVLVesting");
-  const vestingContract = await VTVLVestingFactory.deploy(tokenContract.address);
-  console.log(`vestingContract initialized on ${vestingContract.address}, waiting to be deployed...`);
+  const vestingContract = await VTVLVestingFactory.deploy(
+    tokenContract.address
+  );
+  console.log(
+    `vestingContract initialized on ${vestingContract.address}, waiting to be deployed...`
+  );
   await vestingContract.deployed();
   console.log("Deployed a vesting contract to:", vestingContract.address);
 
-  const numTokensToInitializeContract = await tokenContract.balanceOf(await deployer.getAddress());
+  const numTokensToInitializeContract = await tokenContract.balanceOf(
+    await deployer.getAddress()
+  );
 
-  await tokenContract.transfer(vestingContract.address, numTokensToInitializeContract);
-  console.log(`Transferring ${await tokenContract.symbol()} tokens to newly initialized contract (${numTokensToInitializeContract}).`);
+  await tokenContract.transfer(
+    vestingContract.address,
+    numTokensToInitializeContract
+  );
+  console.log(
+    `Transferring ${await tokenContract.symbol()} tokens to newly initialized contract (${numTokensToInitializeContract}).`
+  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere

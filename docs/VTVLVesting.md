@@ -30,7 +30,7 @@ Return all the addresses that have vesting schedules attached.
 ### claimableAmount
 
 ```solidity
-function claimableAmount(address _recipient) external view returns (uint112)
+function claimableAmount(address _recipient) external view returns (uint256)
 ```
 
 Calculates how much can we claim, by subtracting the already withdrawn amount from the vestedAmount at this moment.
@@ -47,7 +47,7 @@ Calculates how much can we claim, by subtracting the already withdrawn amount fr
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint112 | undefined |
+| _0 | uint256 | undefined |
 
 ### createClaim
 
@@ -96,7 +96,7 @@ The batch version of the createClaim function. Each argument is an array, and th
 ### finalVestedAmount
 
 ```solidity
-function finalVestedAmount(address _recipient) external view returns (uint112)
+function finalVestedAmount(address _recipient) external view returns (uint256)
 ```
 
 Calculate the total vested at the end of the schedule, by simply feeding in the end timestamp to the function above.
@@ -113,7 +113,7 @@ Calculate the total vested at the end of the schedule, by simply feeding in the 
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint112 | undefined |
+| _0 | uint256 | undefined |
 
 ### getClaim
 
@@ -162,7 +162,7 @@ function isAdmin(address _addressToCheck) external view returns (bool)
 ### numTokensReservedForVesting
 
 ```solidity
-function numTokensReservedForVesting() external view returns (uint112)
+function numTokensReservedForVesting() external view returns (uint256)
 ```
 
 How many tokens are already allocated to vesting schedules.
@@ -174,7 +174,7 @@ How many tokens are already allocated to vesting schedules.
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint112 | undefined |
+| _0 | uint256 | undefined |
 
 ### numVestingRecipients
 
@@ -246,7 +246,7 @@ Address of the token that we&#39;re vesting
 ### vestedAmount
 
 ```solidity
-function vestedAmount(address _recipient, uint40 _referenceTs) external view returns (uint112)
+function vestedAmount(address _recipient, uint40 _referenceTs) external view returns (uint256)
 ```
 
 Calculate the amount vested for a given _recipient at a reference timestamp.
@@ -264,7 +264,7 @@ Calculate the amount vested for a given _recipient at a reference timestamp.
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint112 | undefined |
+| _0 | uint256 | undefined |
 
 ### withdraw
 
@@ -333,7 +333,7 @@ event AdminAccessSet(address indexed _admin, bool _enabled)
 ### AdminWithdrawn
 
 ```solidity
-event AdminWithdrawn(address indexed _recipient, uint112 _amountRequested)
+event AdminWithdrawn(address indexed _recipient, uint256 _amountRequested)
 ```
 
 Emitted when admin withdraws.
@@ -345,7 +345,7 @@ Emitted when admin withdraws.
 | Name | Type | Description |
 |---|---|---|
 | _recipient `indexed` | address | undefined |
-| _amountRequested  | uint112 | undefined |
+| _amountRequested  | uint256 | undefined |
 
 ### ClaimCreated
 
@@ -367,7 +367,7 @@ Emitted when a founder adds a vesting schedule.
 ### ClaimRevoked
 
 ```solidity
-event ClaimRevoked(address indexed _recipient, uint112 _numTokensWithheld, uint256 revocationTimestamp, VTVLVesting.Claim _claim)
+event ClaimRevoked(address indexed _recipient, uint256 _numTokensWithheld, uint256 revocationTimestamp, VTVLVesting.Claim _claim)
 ```
 
 Emitted when a claim is revoked
@@ -379,14 +379,14 @@ Emitted when a claim is revoked
 | Name | Type | Description |
 |---|---|---|
 | _recipient `indexed` | address | undefined |
-| _numTokensWithheld  | uint112 | undefined |
+| _numTokensWithheld  | uint256 | undefined |
 | revocationTimestamp  | uint256 | undefined |
 | _claim  | VTVLVesting.Claim | undefined |
 
 ### Claimed
 
 ```solidity
-event Claimed(address indexed _recipient, uint112 _withdrawalAmount)
+event Claimed(address indexed _recipient, uint256 _withdrawalAmount)
 ```
 
 Emitted when someone withdraws a vested amount
@@ -398,7 +398,7 @@ Emitted when someone withdraws a vested amount
 | Name | Type | Description |
 |---|---|---|
 | _recipient `indexed` | address | undefined |
-| _withdrawalAmount  | uint112 | undefined |
+| _withdrawalAmount  | uint256 | undefined |
 
 
 
