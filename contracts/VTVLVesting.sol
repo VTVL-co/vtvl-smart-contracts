@@ -6,9 +6,10 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccessProtected.sol";
 
-contract VTVLVesting is Context, AccessProtected {
+contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /**
@@ -158,7 +159,7 @@ contract VTVLVesting is Context, AccessProtected {
             // If we're past the cliffReleaseTimestamp, we release the cliffAmount
             // We don't check here that cliffReleaseTimestamp is after the startTimestamp 
             if(_referenceTs >= _claim.cliffReleaseTimestamp) {
-                vestAmt += uint256(_claim.cliffAmount);
+                vestAmt += _claim.cliffAmount;
             }
 
             // Calculate the linearly vested amount - this is relevant only if we're past the schedule start
@@ -178,13 +179,15 @@ contract VTVLVesting is Context, AccessProtected {
                 // Having calculated the linearVestAmount, simply add it to the vested amount
                 vestAmt += linearVestAmount;
             }
+
+            return vestAmt;
         }
-        
+
         // Return the bigger of (vestAmt, _claim.amountWithdrawn)
         // Rationale: no matter how we calculate the vestAmt, we can never return that less was vested than was already withdrawn.
         // Case where this could be relevant - If the claim is inactive, vestAmt would be 0, yet if something was already withdrawn 
         // on that claim, we want to return that as vested thus far - as we want the function to be monotonic.
-        return (vestAmt > _claim.amountWithdrawn) ? vestAmt : _claim.amountWithdrawn;
+        return _claim.amountWithdrawn;
     }
 
     /**
@@ -361,7 +364,7 @@ contract VTVLVesting is Context, AccessProtected {
     @notice Withdraw the full claimable balance.
     @dev hasActiveClaim throws off anyone without a claim.
      */
-    function withdraw() hasActiveClaim(_msgSender()) external {
+    function withdraw() external hasActiveClaim(_msgSender()) nonReentrant {
         // Get the message sender claim - if any
 
         Claim storage usrClaim = claims[_msgSender()];
@@ -395,7 +398,7 @@ contract VTVLVesting is Context, AccessProtected {
     @notice Admin withdrawal of the unallocated tokens.
     @param _amountRequested - the amount that we want to withdraw
      */
-    function withdrawAdmin(uint256 _amountRequested) public onlyAdmin {    
+    function withdrawAdmin(uint256 _amountRequested) public onlyAdmin nonReentrant {    
         // Allow the owner to withdraw any balance not currently tied up in contracts.
         uint256 amountRemaining = tokenAddress.balanceOf(address(this)) - numTokensReservedForVesting;
 
@@ -443,7 +446,7 @@ contract VTVLVesting is Context, AccessProtected {
     Note that the token to be withdrawn can't be the one at "tokenAddress".
     @param _otherTokenAddress - the token which we want to withdraw
      */
-    function withdrawOtherToken(IERC20 _otherTokenAddress) external onlyAdmin {
+    function withdrawOtherToken(IERC20 _otherTokenAddress) external onlyAdmin nonReentrant {
         require(_otherTokenAddress != tokenAddress, "INVALID_TOKEN"); // tokenAddress address is already sure to be nonzero due to constructor
         uint256 bal = _otherTokenAddress.balanceOf(address(this));
         require(bal > 0, "INSUFFICIENT_BALANCE");

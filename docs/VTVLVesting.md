@@ -280,7 +280,7 @@ Withdraw the full claimable balance.
 ### withdrawAdmin
 
 ```solidity
-function withdrawAdmin(uint112 _amountRequested) external nonpayable
+function withdrawAdmin(uint256 _amountRequested) external nonpayable
 ```
 
 Admin withdrawal of the unallocated tokens.
@@ -291,7 +291,7 @@ Admin withdrawal of the unallocated tokens.
 
 | Name | Type | Description |
 |---|---|---|
-| _amountRequested | uint112 | - the amount that we want to withdraw |
+| _amountRequested | uint256 | - the amount that we want to withdraw |
 
 ### withdrawOtherToken
 
