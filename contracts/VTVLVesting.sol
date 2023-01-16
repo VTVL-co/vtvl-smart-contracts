@@ -395,7 +395,7 @@ contract VTVLVesting is Context, AccessProtected {
     @notice Admin withdrawal of the unallocated tokens.
     @param _amountRequested - the amount that we want to withdraw
      */
-    function withdrawAdmin(uint112 _amountRequested) public onlyAdmin {    
+    function withdrawAdmin(uint256 _amountRequested) public onlyAdmin {    
         // Allow the owner to withdraw any balance not currently tied up in contracts.
         uint256 amountRemaining = tokenAddress.balanceOf(address(this)) - numTokensReservedForVesting;
 
