@@ -523,7 +523,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
      * @notice Get amount that is not vested in contract
      * @dev Whenever vesting is revoked, this amount will be increased.
      */
-    function unlockedAmount() public view returns (uint256) {
+    function amountAvailableToWithdrawByAdmin() public view returns (uint256) {
         return
             tokenAddress.balanceOf(address(this)) - numTokensReservedForVesting;
     }
