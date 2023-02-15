@@ -110,6 +110,28 @@ The batch version of the createClaim function. Each argument is an array, and th
 | _linearVestAmounts | uint112[] | undefined |
 | _cliffAmounts | uint112[] | undefined |
 
+### finalClaimableAmount
+
+```solidity
+function finalClaimableAmount(address _recipient) external view returns (uint256)
+```
+
+Calculates how much wil be possible to claim at the end of vesting date, by subtracting the already withdrawn amount from the vestedAmount at this moment. Vesting date is either the end timestamp or the deactivation timestamp.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _recipient | address | - The address for whom we&#39;re calculating |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### finalVestedAmount
 
 ```solidity
