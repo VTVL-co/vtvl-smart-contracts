@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import Chance from "chance";
 // eslint-disable-next-line node/no-missing-import
-import { VTVLVesting } from "../typechain";
+import { VTVLVesting, VTVLVestingFactory } from "../typechain";
 import { BigNumber, BigNumberish } from "ethers";
 const VaultFactoryJson = require("../artifacts/contracts/VTVLVestingFactory.sol/VTVLVestingFactory.json");
 const iface = new ethers.utils.Interface(VaultFactoryJson.abi);
@@ -40,9 +40,10 @@ const getLastBlockTs = async () => {
 const createContractFactory = async () =>
   await ethers.getContractFactory("VTVLVestingFactory");
 
+let factoryContract: VTVLVestingFactory;
 const deployVestingContract = async (tokenAddress?: string) => {
   const factory = await createContractFactory();
-  const factoryContract = await factory.deploy();
+  factoryContract = await factory.deploy();
   await factoryContract.deployed();
 
   const transaction = await factoryContract.createVestingContract(
@@ -586,6 +587,27 @@ describe("Claim creation", async function () {
     expect(tx)
       .to.emit(vestingContract, "ClaimCreated")
       .withArgs(recipientAddress, returnedClaimInfo);
+  });
+
+  it("createClaim mint nft", async () => {
+    const { vestingContract } = await createPrefundedVestingContract({
+      tokenName,
+      tokenSymbol,
+      initialSupplyTokens,
+    });
+    const tx = await vestingContract.createClaim(
+      recipientAddress,
+      startTimestamp,
+      endTimestamp,
+      cliffReleaseTimestamp,
+      releaseIntervalSecs,
+      linearVestAmount,
+      cliffAmount
+    );
+    await tx.wait();
+
+    const balance = await factoryContract.balanceOf(recipientAddress, 1);
+    expect(balance.toNumber()).to.be.equal(1);
   });
 });
 describe("Claim creation batch", async function () {

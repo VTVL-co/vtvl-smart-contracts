@@ -3,13 +3,39 @@ pragma solidity 0.8.14;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./VTVLVesting.sol";
 
 /// @title Vesting Factory contract
 /// @notice Create Vesting contract
 
-contract VTVLVestingFactory is Ownable {
+contract VTVLVestingFactory is ERC1155, Ownable {
+    using Counters for Counters.Counter;
+
+    /// Curent NFT token ID
+    Counters.Counter private tokenId;
+
+    /// Store vesting contract addresses as key
+    mapping(address => bool) isVestingContracts;
+
+    /**
+     * @notice Initialize ERC1155
+     * @dev tokenId will start from 1
+     */
+    constructor() ERC1155("") {
+        tokenId.increment();
+    }
+
+    /**
+     * @dev Throws if called by any account other than the vesting contracts.
+     */
+    modifier onlyVestingContract() {
+        require(isVestingContracts[msg.sender], "Wrong vesting contract");
+        _;
+    }
+
     event CreateVestingContract(
         address indexed vestingAddress,
         address deployer
@@ -20,8 +46,28 @@ contract VTVLVestingFactory is Ownable {
      * @param _tokenAddress Vesting Fund token address
      */
     function createVestingContract(IERC20 _tokenAddress) public {
-        VTVLVesting vestingContract = new VTVLVesting(_tokenAddress);
+        VTVLVesting vestingContract = new VTVLVesting(
+            _tokenAddress,
+            address(this),
+            tokenId.current()
+        );
+
+        isVestingContracts[address(vestingContract)] = true;
 
         emit CreateVestingContract(address(vestingContract), msg.sender);
+    }
+
+    /**
+     * @notice Mint NFT
+     * @param _receiver Address of receiver
+     * @param _tokenId Id of NFT
+     * @param _amount amount of NFT
+     */
+    function mint(
+        address _receiver,
+        uint256 _tokenId,
+        uint256 _amount
+    ) external onlyVestingContract {
+        _mint(_receiver, _tokenId, _amount, "");
     }
 }

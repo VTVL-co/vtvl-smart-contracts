@@ -9,6 +9,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccessProtected.sol";
 
+interface IVestingNFT {
+    function mint(address receiver, uint256 id, uint256 amount) external;
+}
+
 contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -52,6 +56,12 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     // Track the recipients of the vesting
     address[] internal vestingRecipients;
 
+    // The address of ERC1155
+    address nftAddress;
+
+    // Id of ERC1155
+    uint256 tokenId;
+
     // Events:
     /**
     @notice Emitted when a founder adds a vesting schedule.
@@ -83,9 +93,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Construct the contract, taking the ERC20 token to be vested as the parameter.
     @dev The owner can set the contract in question when creating the contract.
      */
-    constructor(IERC20 _tokenAddress) {
+    constructor(IERC20 _tokenAddress, address _nftAddress, uint256 _tokenId) {
         require(address(_tokenAddress) != address(0), "INVALID_ADDRESS");
         tokenAddress = _tokenAddress;
+        nftAddress = _nftAddress;
+        tokenId = _tokenId;
     }
 
     /**
@@ -301,6 +313,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
                 (_cliffReleaseTimestamp == 0 && _cliffAmount == 0),
             "INVALID_CLIFF"
         );
+
+        // Mint ERC1155 NFT to the recipient
+        IVestingNFT(nftAddress).mint(_recipient, tokenId, 1);
 
         Claim storage _claim = claims[_recipient];
         _claim.startTimestamp = _startTimestamp;
