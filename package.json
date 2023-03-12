@@ -39,6 +39,7 @@
     "@openzeppelin/test-helpers": "^0.5.15",
     "@primitivefi/hardhat-dodoc": "^0.2.3",
     "chance": "^1.1.8",
+    "erc721a": "^4.2.3",
     "hardhat-contract-sizer": "^2.5.1",
     "moralis-admin-cli": "^2.1.16"
   },

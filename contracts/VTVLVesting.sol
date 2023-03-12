@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.14;
+pragma solidity 0.8.19;
 // Note: using solidity 0.8, SafeMath not needed any more
 
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccessProtected.sol";
 
 interface IVestingNFT {
-    function mint(address receiver, uint256 id, uint256 amount) external;
+    function mint(address receiver, uint256 amount) external;
 }
 
 contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
@@ -31,47 +31,61 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     */
     uint256 public numTokensReservedForVesting = 0;
 
-    /**
-    @notice A structure representing a single claim - supporting linear and cliff vesting.
-     */
-    struct Claim {
-        // Using 40 bits for timestamp (seconds)
-        // Gives us a range from 1 Jan 1970 (Unix epoch) up to approximately 35 thousand years from then (2^40 / (365 * 24 * 60 * 60) ~= 35k)
-        uint40 startTimestamp; // When does the vesting start (40 bits is enough for TS)
-        uint40 endTimestamp; // When does the vesting end - the vesting goes linearly between the start and end timestamps
-        uint40 cliffReleaseTimestamp; // At which timestamp is the cliffAmount released. This must be <= startTimestamp
-        uint40 releaseIntervalSecs; // Every how many seconds does the vested amount increase.
-        // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
-        // uint112 range: range 0 –                             5,192,296,858,534,827.
-        uint256 linearVestAmount; // total entitlement
-        uint256 amountWithdrawn; // how much was withdrawn thus far - released at the cliffReleaseTimestamp
-        uint112 cliffAmount; // how much is released at the cliff
-        bool isActive; // whether this claim is active (or revoked)
-    }
+    // Using 40 bits for timestamp (seconds)
+    // Gives us a range from 1 Jan 1970 (Unix epoch) up to approximately 35 thousand years from then (2^40 / (365 * 24 * 60 * 60) ~= 35k)
+    uint40 startTimestamp; // When does the vesting start (40 bits is enough for TS)
+    uint40 endTimestamp; // When does the vesting end - the vesting goes linearly between the start and end timestamps
+    uint40 cliffReleaseTimestamp; // At which timestamp is the cliffAmount released. This must be <= startTimestamp
+    uint40 releaseIntervalSecs; // Every how many seconds does the vested amount increase.
+    // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
+    // uint112 range: range 0 –                             5,192,296,858,534,827.
+    uint256 linearVestAmount; // total entitlement
+    uint256 amountWithdrawn; // how much was withdrawn thus far - released at the cliffReleaseTimestamp
+    uint112 cliffAmount; // how much is released at the cliff
+    bool isActive; // whether this claim is active (or revoked)
+
+    // withdrawn amount for each NFTs
+    mapping(uint256 => uint256) withdrawnAmounts;
 
     // Mapping every user address to his/her Claim
     // Only one Claim possible per address
-    mapping(address => Claim) internal claims;
+    // mapping(address => Claim) internal claims;
 
     // Track the recipients of the vesting
-    address[] internal vestingRecipients;
+    // address[] internal vestingRecipients;
 
-    // The address of ERC1155
+    // The address of ERC721A
     address nftAddress;
 
-    // Id of ERC1155
-    uint256 tokenId;
+    // Start Id of ERC721A
+    uint256 startNftId;
+
+    // amount of fractional nfts
+    uint256 fractionalAmount;
 
     // Events:
     /**
     @notice Emitted when a founder adds a vesting schedule.
      */
-    event ClaimCreated(address indexed _recipient, Claim _claim);
+    event ClaimCreated(
+        address indexed _owner,
+        uint256 _fractionalAmount,
+        uint40 _startTimestamp,
+        uint40 _endTimestamp,
+        uint40 _cliffReleaseTimestamp,
+        utin40 _releaseIntervalSecs,
+        uint112 _cliffAmount,
+        uint256 _linearVestAmount
+    ); // let everyone know
 
     /**
     @notice Emitted when someone withdraws a vested amount
     */
-    event Claimed(address indexed _recipient, uint256 _withdrawalAmount);
+    event Claimed(
+        address indexed _recipient,
+        uint256 _nftId,
+        uint256 _withdrawalAmount
+    );
 
     /** 
     @notice Emitted when a claim is revoked
@@ -93,20 +107,45 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Construct the contract, taking the ERC20 token to be vested as the parameter.
     @dev The owner can set the contract in question when creating the contract.
      */
-    constructor(IERC20 _tokenAddress, address _nftAddress, uint256 _tokenId) {
+    constructor(
+        IERC20 _tokenAddress,
+        address _nftAddress,
+        uint256 _startNftId
+    ) {
         require(address(_tokenAddress) != address(0), "INVALID_ADDRESS");
         tokenAddress = _tokenAddress;
         nftAddress = _nftAddress;
-        tokenId = _tokenId;
+        startNftId = _startNftId;
+    }
+
+    // /**
+    // @notice Basic getter for a claim.
+    // @dev Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)).
+    // @param _recipient - the address for which we fetch the claim.
+    //  */
+    // function getClaim(address _recipient) external view returns (Claim memory) {
+    //     return claims[_recipient];
+    // }
+
+    /**
+    @notice Get the withdrawn amount for each nfts. 
+    @param _nftId - the Id of NFT that you are going to get the withdrawn amount
+     */
+    function getWithdrawnAmount(
+        uint256 _nftId
+    ) external view returns (uint256) {
+        return withdrawnAmounts[_nftId];
     }
 
     /**
-    @notice Basic getter for a claim. 
-    @dev Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)). 
-    @param _recipient - the address for which we fetch the claim.
-     */
-    function getClaim(address _recipient) external view returns (Claim memory) {
-        return claims[_recipient];
+    @notice This modifier requires that an user has a fractional NFT.
+    */
+    modifier isNFTOwner(uint256 _nftId) {
+        requires(
+            IVestingNFT(nftAddress).ownerOf(_nftId) == msg.sender,
+            "NO_NFT_OWNER"
+        );
+        _;
     }
 
     /**
@@ -119,13 +158,12 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     * IFF a claim has been created. In addition to that, we need to check
     * a claim is active (since this is has_*Active*_Claim)
     */
-    modifier hasActiveClaim(address _recipient) {
-        Claim storage _claim = claims[_recipient];
-        require(_claim.startTimestamp > 0, "NO_ACTIVE_CLAIM");
+    modifier hasActiveClaim() {
+        require(startTimestamp > 0, "NO_ACTIVE_CLAIM");
 
         // We however still need the active check, since (due to the name of the function)
         // we want to only allow active claims
-        require(_claim.isActive == true, "NO_ACTIVE_CLAIM");
+        require(isActive == true, "NO_ACTIVE_CLAIM");
 
         // Save gas, omit further checks
         // require(_claim.linearVestAmount + _claim.cliffAmount > 0, "INVALID_VESTED_AMOUNT");
@@ -133,42 +171,19 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         _;
     }
 
-    /** 
-    @notice Modifier which is opposite hasActiveClaim
-    @dev Requires that all fields are unset
-    */
-    modifier hasNoClaim(address _recipient) {
-        Claim storage _claim = claims[_recipient];
-        // Start timestamp != 0 is a sufficient condition for a claim to exist
-        // This is because we only ever add claims (or modify startTs) in the createClaim function
-        // Which requires that its input startTimestamp be nonzero
-        // So therefore, a zero value for this indicates the claim does not exist.
-        require(_claim.startTimestamp == 0, "CLAIM_ALREADY_EXISTS");
-
-        // We don't even need to check for active to be unset, since this function only
-        // determines that a claim hasn't been set
-        // require(_claim.isActive == false, "CLAIM_ALREADY_EXISTS");
-
-        // Further checks aren't necessary (to save gas), as they're done at creation time (createClaim)
-        // require(_claim.endTimestamp == 0, "CLAIM_ALREADY_EXISTS");
-        // require(_claim.linearVestAmount + _claim.cliffAmount == 0, "CLAIM_ALREADY_EXISTS");
-        // require(_claim.amountWithdrawn == 0, "CLAIM_ALREADY_EXISTS");
-        _;
-    }
-
     /**
     @notice Pure function to calculate the vested amount from a given _claim, at a reference timestamp
-    @param _claim The claim in question
+    @param _nftId Id of fractional NFT
     @param _referenceTs Timestamp for which we're calculating
      */
     function _baseVestedAmount(
-        Claim memory _claim,
+        uint256 _nftId,
         uint40 _referenceTs
     ) internal pure returns (uint256) {
         uint256 vestAmt = 0;
 
         // the condition to have anything vested is to be active
-        if (_claim.isActive) {
+        if (isActive) {
             // no point of looking past the endTimestamp as nothing should vest afterwards
             // So if we're past the end, just get the ref frame back to the end
             if (_referenceTs > _claim.endTimestamp) {
@@ -205,67 +220,60 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
                 vestAmt += linearVestAmount;
             }
 
-            return vestAmt;
+            return vestAmt / fractionalAmount;
         }
 
         // Return the bigger of (vestAmt, _claim.amountWithdrawn)
         // Rationale: no matter how we calculate the vestAmt, we can never return that less was vested than was already withdrawn.
         // Case where this could be relevant - If the claim is inactive, vestAmt would be 0, yet if something was already withdrawn
         // on that claim, we want to return that as vested thus far - as we want the function to be monotonic.
-        return _claim.amountWithdrawn;
+        return withdrawnAmounts[_nftId];
     }
 
     /**
     @notice Calculate the amount vested for a given _recipient at a reference timestamp.
-    @param _recipient - The address for whom we're calculating
+    @param _nftId - The ID of fractional NFT.
     @param _referenceTs - The timestamp at which we want to calculate the vested amount.
     @dev Simply call the _baseVestedAmount for the claim in question
     */
     function vestedAmount(
-        address _recipient,
+        uint256 _nftId,
         uint40 _referenceTs
     ) public view returns (uint256) {
-        Claim memory _claim = claims[_recipient];
-        return _baseVestedAmount(_claim, _referenceTs);
+        return _baseVestedAmount(_nftId, _referenceTs);
     }
 
     /**
     @notice Calculate the total vested at the end of the schedule, by simply feeding in the end timestamp to the function above.
     @dev This fn is somewhat superfluous, should probably be removed.
-    @param _recipient - The address for whom we're calculating
+    @param _nftId - The factional NFT id for whom we're calculating
      */
-    function finalVestedAmount(
-        address _recipient
-    ) public view returns (uint256) {
-        Claim memory _claim = claims[_recipient];
-        return _baseVestedAmount(_claim, _claim.endTimestamp);
+    function finalVestedAmount(uint256 _nftId) public view returns (uint256) {
+        return _baseVestedAmount(_nftId, _claim.endTimestamp);
     }
 
     /**
     @notice Calculates how much can we claim, by subtracting the already withdrawn amount from the vestedAmount at this moment.
-    @param _recipient - The address for whom we're calculating
+    @param _nftId - The fractional NFT Id for whom we're calculating
     */
-    function claimableAmount(
-        address _recipient
-    ) external view returns (uint256) {
-        Claim memory _claim = claims[_recipient];
+    function claimableAmount(uint256 _nftId) external view returns (uint256) {
         return
-            _baseVestedAmount(_claim, uint40(block.timestamp)) -
-            _claim.amountWithdrawn;
+            _baseVestedAmount(_nftId, uint40(block.timestamp)) -
+            withdrawnAmounts[_nftId];
     }
 
-    /** 
-    @notice Return all the addresses that have vesting schedules attached.
-    */
-    function allVestingRecipients() external view returns (address[] memory) {
-        return vestingRecipients;
-    }
+    // /**
+    // @notice Return all the addresses that have vesting schedules attached.
+    // */
+    // function allVestingRecipients() external view returns (address[] memory) {
+    //     return vestingRecipients;
+    // }
 
     /** 
-    @notice Get the total number of vesting recipients.
+    @notice Get the total number of fractional NFTs.
     */
-    function numVestingRecipients() external view returns (uint256) {
-        return vestingRecipients.length;
+    function numFractionals() external view returns (uint256) {
+        return fractionalAmounts;
     }
 
     /** 
@@ -280,15 +288,13 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @param _cliffAmount - The amount released at _cliffReleaseTimestamp. Can be 0 if _cliffReleaseTimestamp is also 0.
      */
     function _createClaimUnchecked(
-        address _recipient,
         uint40 _startTimestamp,
         uint40 _endTimestamp,
         uint40 _cliffReleaseTimestamp,
         uint40 _releaseIntervalSecs,
         uint112 _linearVestAmount,
         uint112 _cliffAmount
-    ) private hasNoClaim(_recipient) {
-        require(_recipient != address(0), "INVALID_ADDRESS");
+    ) private {
         require(_linearVestAmount + _cliffAmount > 0, "INVALID_VESTED_AMOUNT"); // Actually only one of linearvested/cliff amount must be 0, not necessarily both
         require(_startTimestamp > 0, "INVALID_START_TIMESTAMP");
         // Do we need to check whether _startTimestamp is greater than the current block.timestamp?
@@ -314,36 +320,38 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
             "INVALID_CLIFF"
         );
 
-        // Mint ERC1155 NFT to the recipient
-        IVestingNFT(nftAddress).mint(_recipient, tokenId, 1);
-
-        Claim storage _claim = claims[_recipient];
-        _claim.startTimestamp = _startTimestamp;
-        _claim.endTimestamp = _endTimestamp;
-        _claim.cliffReleaseTimestamp = _cliffReleaseTimestamp;
-        _claim.releaseIntervalSecs = _releaseIntervalSecs;
-        _claim.cliffAmount = _cliffAmount;
-        _claim.linearVestAmount = _linearVestAmount;
-        _claim.amountWithdrawn = 0;
-        _claim.isActive = true;
+        startTimestamp = _startTimestamp;
+        endTimestamp = _endTimestamp;
+        cliffReleaseTimestamp = _cliffReleaseTimestamp;
+        releaseIntervalSecs = _releaseIntervalSecs;
+        cliffAmount = _cliffAmount;
+        linearVestAmount = _linearVestAmount;
+        amountWithdrawn = 0;
+        isActive = true;
 
         // Our total allocation is simply the full sum of the two amounts, _cliffAmount + _linearVestAmount
         // Not necessary to use the more complex logic from _baseVestedAmount
-        uint256 allocatedAmount = _cliffAmount + _linearVestAmount;
+        numTokensReservedForVesting = _cliffAmount + _linearVestAmount;
 
         // Still no effects up to this point (and tokenAddress is selected by contract deployer and is immutable), so no reentrancy risk
         require(
             tokenAddress.balanceOf(address(this)) >=
-                numTokensReservedForVesting + allocatedAmount,
+                numTokensReservedForVesting,
             "INSUFFICIENT_BALANCE"
         );
 
         // Done with checks
 
         // Effects limited to lines below
-        numTokensReservedForVesting += allocatedAmount; // track the allocated amount
-        vestingRecipients.push(_recipient); // add the vesting recipient to the list
-        emit ClaimCreated(_recipient, _claim); // let everyone know
+        emit ClaimCreated(
+            msg.sender,
+            startTimestamp,
+            endTimestamp,
+            cliffReleaseTimestamp,
+            releaseIntervalSecs,
+            cliffAmount,
+            linearVestAmount
+        ); // let everyone know
     }
 
     /** 
@@ -364,7 +372,8 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         uint40 _cliffReleaseTimestamp,
         uint40 _releaseIntervalSecs,
         uint112 _linearVestAmount,
-        uint112 _cliffAmount
+        uint112 _cliffAmount,
+        uint112 _fractionalAmount
     ) external onlyAdmin {
         _createClaimUnchecked(
             _recipient,
@@ -375,72 +384,77 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
             _linearVestAmount,
             _cliffAmount
         );
+
+        // Mint ERC1155 NFT to the recipient
+        IVestingNFT(nftAddress).mint(_recipient, _fractionalAmount);
+        fractionalAmount = _fractionalAmount;
     }
 
-    /**
-    @notice The batch version of the createClaim function. Each argument is an array, and this function simply repeatedly calls the createClaim.
-    
-     */
-    function createClaimsBatch(
-        address[] memory _recipients,
-        uint40[] memory _startTimestamps,
-        uint40[] memory _endTimestamps,
-        uint40[] memory _cliffReleaseTimestamps,
-        uint40[] memory _releaseIntervalsSecs,
-        uint112[] memory _linearVestAmounts,
-        uint112[] memory _cliffAmounts
-    ) external onlyAdmin {
-        uint256 length = _recipients.length;
-        require(
-            _startTimestamps.length == length &&
-                _endTimestamps.length == length &&
-                _cliffReleaseTimestamps.length == length &&
-                _releaseIntervalsSecs.length == length &&
-                _linearVestAmounts.length == length &&
-                _cliffAmounts.length == length,
-            "ARRAY_LENGTH_MISMATCH"
-        );
+    // /**
+    // @notice The batch version of the createClaim function. Each argument is an array, and this function simply repeatedly calls the createClaim.
 
-        for (uint256 i = 0; i < length; i++) {
-            _createClaimUnchecked(
-                _recipients[i],
-                _startTimestamps[i],
-                _endTimestamps[i],
-                _cliffReleaseTimestamps[i],
-                _releaseIntervalsSecs[i],
-                _linearVestAmounts[i],
-                _cliffAmounts[i]
-            );
-        }
+    //  */
+    // function createClaimsBatch(
+    //     address[] memory _recipients,
+    //     uint40[] memory _startTimestamps,
+    //     uint40[] memory _endTimestamps,
+    //     uint40[] memory _cliffReleaseTimestamps,
+    //     uint40[] memory _releaseIntervalsSecs,
+    //     uint112[] memory _linearVestAmounts,
+    //     uint112[] memory _cliffAmounts
+    // ) external onlyAdmin {
+    //     uint256 length = _recipients.length;
+    //     require(
+    //         _startTimestamps.length == length &&
+    //             _endTimestamps.length == length &&
+    //             _cliffReleaseTimestamps.length == length &&
+    //             _releaseIntervalsSecs.length == length &&
+    //             _linearVestAmounts.length == length &&
+    //             _cliffAmounts.length == length,
+    //         "ARRAY_LENGTH_MISMATCH"
+    //     );
 
-        // No need for separate emit, since createClaim will emit for each claim (and this function is merely a convenience/gas-saver for multiple claims creation)
-    }
+    //     for (uint256 i = 0; i < length; i++) {
+    //         _createClaimUnchecked(
+    //             _recipients[i],
+    //             _startTimestamps[i],
+    //             _endTimestamps[i],
+    //             _cliffReleaseTimestamps[i],
+    //             _releaseIntervalsSecs[i],
+    //             _linearVestAmounts[i],
+    //             _cliffAmounts[i]
+    //         );
+    //     }
+
+    //     // No need for separate emit, since createClaim will emit for each claim (and this function is merely a convenience/gas-saver for multiple claims creation)
+    // }
 
     /**
     @notice Withdraw the full claimable balance.
     @dev hasActiveClaim throws off anyone without a claim.
+    @param _nftId - The fraction NFT Id that is going to withdraw with.
      */
-    function withdraw() external hasActiveClaim(_msgSender()) nonReentrant {
+    function withdraw(
+        uint256 _nftId
+    ) external hasActiveClaim isNFTOwner(_nftId) nonReentrant {
         // Get the message sender claim - if any
-
-        Claim storage usrClaim = claims[_msgSender()];
 
         // we can use block.timestamp directly here as reference TS, as the function itself will make sure to cap it to endTimestamp
         // Conversion of timestamp to uint40 should be safe since 48 bit allows for a lot of years.
-        uint256 allowance = vestedAmount(_msgSender(), uint40(block.timestamp));
+        uint256 allowance = vestedAmount(_nftId, uint40(block.timestamp));
 
         // Make sure we didn't already withdraw more that we're allowed.
         require(
-            allowance > usrClaim.amountWithdrawn && allowance > 0,
+            allowance > withdrawnAmounts[_nftId] && allowance > 0,
             "NOTHING_TO_WITHDRAW"
         );
 
         // Calculate how much can we withdraw (equivalent to the above inequality)
-        uint256 amountRemaining = allowance - usrClaim.amountWithdrawn;
+        uint256 amountRemaining = allowance - withdrawnAmounts[_nftId];
 
         // "Double-entry bookkeeping"
         // Carry out the withdrawal by noting the withdrawn amount, and by transferring the tokens.
-        usrClaim.amountWithdrawn += amountRemaining;
+        withdrawnAmounts[_nftId] += amountRemaining;
         // Reduce the allocated amount since the following transaction pays out so the "debt" gets reduced
         numTokensReservedForVesting -= amountRemaining;
 
@@ -450,7 +464,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         tokenAddress.safeTransfer(_msgSender(), amountRemaining);
 
         // Let withdrawal known to everyone.
-        emit Claimed(_msgSender(), amountRemaining);
+        emit Claimed(_msgSender(), _nftId, amountRemaining);
     }
 
     /**
@@ -478,23 +492,19 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Allow an Owner to revoke a claim that is already active.
     @dev The requirement is that a claim exists and that it's active.
     */
-    function revokeClaim(
-        address _recipient
-    ) external onlyAdmin hasActiveClaim(_recipient) {
-        // Fetch the claim
-        Claim storage _claim = claims[_recipient];
+    function revokeClaim(uint256 _nftId) external onlyAdmin hasActiveClaim {
         // Calculate what the claim should finally vest to
-        uint256 finalVestAmt = finalVestedAmount(_recipient);
+        uint256 finalVestAmt = finalVestedAmount(_nftId);
 
         // No point in revoking something that has been fully consumed
         // so require that there be unconsumed amount
-        require(_claim.amountWithdrawn < finalVestAmt, "NO_UNVESTED_AMOUNT");
+        require(withdrawnAmounts[_nftId] < finalVestAmt, "NO_UNVESTED_AMOUNT");
 
         // The amount that is "reclaimed" is equal to the total allocation less what was already withdrawn
-        uint256 amountRemaining = finalVestAmt - _claim.amountWithdrawn;
+        uint256 amountRemaining = finalVestAmt - withdrawnAmounts[_nftId];
 
         // Deactivate the claim, and release the appropriate amount of tokens
-        _claim.isActive = false; // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much
+        isActive = false; // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much
         numTokensReservedForVesting -= amountRemaining; // Reduces the allocation
 
         // Tell everyone a claim has been revoked.

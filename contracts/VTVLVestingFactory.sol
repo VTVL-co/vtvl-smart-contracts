@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.14;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "erc721a/contracts/ERC721A.sol";
 
 import "./VTVLVesting.sol";
 
 /// @title Vesting Factory contract
 /// @notice Create Vesting contract
 
-contract VTVLVestingFactory is ERC1155, Ownable {
+contract VTVLVestingFactory is ERC721A, Ownable {
     using Counters for Counters.Counter;
-
-    /// Curent NFT token ID
-    Counters.Counter private tokenId;
 
     /// Store vesting contract addresses as key
     mapping(address => bool) isVestingContracts;
@@ -24,9 +21,7 @@ contract VTVLVestingFactory is ERC1155, Ownable {
      * @notice Initialize ERC1155
      * @dev tokenId will start from 1
      */
-    constructor() ERC1155("") {
-        tokenId.increment();
-    }
+    constructor() ERC721A("VTVL Vesting", "VVN") {}
 
     /**
      * @dev Throws if called by any account other than the vesting contracts.
@@ -49,7 +44,7 @@ contract VTVLVestingFactory is ERC1155, Ownable {
         VTVLVesting vestingContract = new VTVLVesting(
             _tokenAddress,
             address(this),
-            tokenId.current()
+            _nextTokenId()
         );
 
         isVestingContracts[address(vestingContract)] = true;
@@ -65,9 +60,13 @@ contract VTVLVestingFactory is ERC1155, Ownable {
      */
     function mint(
         address _receiver,
-        uint256 _tokenId,
         uint256 _amount
     ) external onlyVestingContract {
-        _mint(_receiver, _tokenId, _amount, "");
+        _mint(_receiver, _amount);
+    }
+
+    // start token id will be 1
+    function _startTokenId() private view override returns (uint256) {
+        return 1;
     }
 }
