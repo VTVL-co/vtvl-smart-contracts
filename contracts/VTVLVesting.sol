@@ -40,12 +40,13 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
     // uint112 range: range 0 –                             5,192,296,858,534,827.
     uint256 linearVestAmount; // total entitlement
-    uint256 amountWithdrawn; // how much was withdrawn thus far - released at the cliffReleaseTimestamp
     uint112 cliffAmount; // how much is released at the cliff
-    bool isActive; // whether this claim is active (or revoked)
 
     // withdrawn amount for each NFTs
     mapping(uint256 => uint256) withdrawnAmounts;
+
+    // active status for each NFTs
+    mapping(uint256 => bool) isActives;
 
     // Mapping every user address to his/her Claim
     // Only one Claim possible per address
@@ -131,9 +132,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Get the withdrawn amount for each nfts. 
     @param _nftId - the Id of NFT that you are going to get the withdrawn amount
      */
-    function getWithdrawnAmount(
-        uint256 _nftId
-    ) external view returns (uint256) {
+    function getWithdrawnAmount(uint256 _nftId)
+        external
+        view
+        returns (uint256)
+    {
         return withdrawnAmounts[_nftId];
     }
 
@@ -158,12 +161,12 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     * IFF a claim has been created. In addition to that, we need to check
     * a claim is active (since this is has_*Active*_Claim)
     */
-    modifier hasActiveClaim() {
+    modifier hasActiveClaim(uint256 _nftId) {
         require(startTimestamp > 0, "NO_ACTIVE_CLAIM");
 
         // We however still need the active check, since (due to the name of the function)
         // we want to only allow active claims
-        require(isActive == true, "NO_ACTIVE_CLAIM");
+        require(isActives[_nftId] == true, "NO_ACTIVE_CLAIM");
 
         // Save gas, omit further checks
         // require(_claim.linearVestAmount + _claim.cliffAmount > 0, "INVALID_VESTED_AMOUNT");
@@ -176,14 +179,15 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @param _nftId Id of fractional NFT
     @param _referenceTs Timestamp for which we're calculating
      */
-    function _baseVestedAmount(
-        uint256 _nftId,
-        uint40 _referenceTs
-    ) internal pure returns (uint256) {
+    function _baseVestedAmount(uint256 _nftId, uint40 _referenceTs)
+        internal
+        pure
+        returns (uint256)
+    {
         uint256 vestAmt = 0;
 
         // the condition to have anything vested is to be active
-        if (isActive) {
+        if (isActives[_nftId]) {
             // no point of looking past the endTimestamp as nothing should vest afterwards
             // So if we're past the end, just get the ref frame back to the end
             if (_referenceTs > _claim.endTimestamp) {
@@ -236,10 +240,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @param _referenceTs - The timestamp at which we want to calculate the vested amount.
     @dev Simply call the _baseVestedAmount for the claim in question
     */
-    function vestedAmount(
-        uint256 _nftId,
-        uint40 _referenceTs
-    ) public view returns (uint256) {
+    function vestedAmount(uint256 _nftId, uint40 _referenceTs)
+        public
+        view
+        returns (uint256)
+    {
         return _baseVestedAmount(_nftId, _referenceTs);
     }
 
@@ -326,8 +331,6 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         releaseIntervalSecs = _releaseIntervalSecs;
         cliffAmount = _cliffAmount;
         linearVestAmount = _linearVestAmount;
-        amountWithdrawn = 0;
-        isActive = true;
 
         // Our total allocation is simply the full sum of the two amounts, _cliffAmount + _linearVestAmount
         // Not necessary to use the more complex logic from _baseVestedAmount
@@ -388,6 +391,15 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         // Mint ERC1155 NFT to the recipient
         IVestingNFT(nftAddress).mint(_recipient, _fractionalAmount);
         fractionalAmount = _fractionalAmount;
+
+        // set isActive as true
+        uint112 lastId = _fractionalAmount + startNftId;
+        for (uint112 i = startNftId; i <= lastId; ) {
+            unchecked {
+                isActives[i] = true;
+                ++i;
+            }
+        }
     }
 
     // /**
@@ -434,9 +446,12 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @dev hasActiveClaim throws off anyone without a claim.
     @param _nftId - The fraction NFT Id that is going to withdraw with.
      */
-    function withdraw(
-        uint256 _nftId
-    ) external hasActiveClaim isNFTOwner(_nftId) nonReentrant {
+    function withdraw(uint256 _nftId)
+        external
+        hasActiveClaim(_nftId)
+        isNFTOwner(_nftId)
+        nonReentrant
+    {
         // Get the message sender claim - if any
 
         // we can use block.timestamp directly here as reference TS, as the function itself will make sure to cap it to endTimestamp
@@ -471,9 +486,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Admin withdrawal of the unallocated tokens.
     @param _amountRequested - the amount that we want to withdraw
      */
-    function withdrawAdmin(
-        uint256 _amountRequested
-    ) public onlyAdmin nonReentrant {
+    function withdrawAdmin(uint256 _amountRequested)
+        public
+        onlyAdmin
+        nonReentrant
+    {
         // Allow the owner to withdraw any balance not currently tied up in contracts.
         uint256 amountRemaining = amountAvailableToWithdrawByAdmin();
 
@@ -504,7 +521,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         uint256 amountRemaining = finalVestAmt - withdrawnAmounts[_nftId];
 
         // Deactivate the claim, and release the appropriate amount of tokens
-        isActive = false; // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much
+        isActives[_nftId] = false; // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much
         numTokensReservedForVesting -= amountRemaining; // Reduces the allocation
 
         // Tell everyone a claim has been revoked.
@@ -523,9 +540,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     Note that the token to be withdrawn can't be the one at "tokenAddress".
     @param _otherTokenAddress - the token which we want to withdraw
      */
-    function withdrawOtherToken(
-        IERC20 _otherTokenAddress
-    ) external onlyAdmin nonReentrant {
+    function withdrawOtherToken(IERC20 _otherTokenAddress)
+        external
+        onlyAdmin
+        nonReentrant
+    {
         require(_otherTokenAddress != tokenAddress, "INVALID_TOKEN"); // tokenAddress address is already sure to be nonzero due to constructor
         uint256 bal = _otherTokenAddress.balanceOf(address(this));
         require(bal > 0, "INSUFFICIENT_BALANCE");
