@@ -13,6 +13,7 @@ import "./VTVLVesting.sol";
 
 contract VTVLVestingFactory is ERC721A, Ownable {
     using Counters for Counters.Counter;
+    string baseURI;
 
     /// Store vesting contract addresses as key
     mapping(address => bool) isVestingContracts;
@@ -58,15 +59,25 @@ contract VTVLVestingFactory is ERC721A, Ownable {
      * @param _tokenId Id of NFT
      * @param _amount amount of NFT
      */
-    function mint(
-        address _receiver,
-        uint256 _amount
-    ) external onlyVestingContract {
+    function mint(address _receiver, uint256 _amount)
+        external
+        onlyVestingContract
+    {
         _mint(_receiver, _amount);
     }
 
     // start token id will be 1
     function _startTokenId() private view override returns (uint256) {
         return 1;
+    }
+
+    // override baseURI function
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
+    }
+
+    // set baseURI
+    function setBaseURI(string memory _baseURI) public onlyOwner {
+        baseURI = _baseURI;
     }
 }
