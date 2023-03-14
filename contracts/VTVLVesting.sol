@@ -8,12 +8,9 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccessProtected.sol";
+import "./VTVLNFT.sol";
 
-interface IVestingNFT {
-    function mint(address receiver, uint256 amount) external;
-}
-
-contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
+contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     using SafeERC20 for IERC20;
 
     /**
@@ -55,14 +52,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     // Track the recipients of the vesting
     // address[] internal vestingRecipients;
 
-    // The address of ERC721A
-    address nftAddress;
-
-    // Start Id of ERC721A
-    uint256 startNftId;
-
     // amount of fractional nfts
     uint256 fractionalAmount;
+
+    // base token URI
+    string baseURI;
 
     // Events:
     /**
@@ -108,15 +102,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Construct the contract, taking the ERC20 token to be vested as the parameter.
     @dev The owner can set the contract in question when creating the contract.
      */
-    constructor(
-        IERC20 _tokenAddress,
-        address _nftAddress,
-        uint256 _startNftId
-    ) {
+    constructor(IERC20 _tokenAddress) {
         require(address(_tokenAddress) != address(0), "INVALID_ADDRESS");
         tokenAddress = _tokenAddress;
-        nftAddress = _nftAddress;
-        startNftId = _startNftId;
     }
 
     // /**
@@ -144,10 +132,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice This modifier requires that an user has a fractional NFT.
     */
     modifier isNFTOwner(uint256 _nftId) {
-        requires(
-            IVestingNFT(nftAddress).ownerOf(_nftId) == msg.sender,
-            "NO_NFT_OWNER"
-        );
+        requires(ownerOf(_nftId) == msg.sender, "NO_NFT_OWNER");
         _;
     }
 
@@ -293,6 +278,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @param _cliffAmount - The amount released at _cliffReleaseTimestamp. Can be 0 if _cliffReleaseTimestamp is also 0.
      */
     function _createClaimUnchecked(
+        address _recipient,
         uint40 _startTimestamp,
         uint40 _endTimestamp,
         uint40 _cliffReleaseTimestamp,
@@ -347,7 +333,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
 
         // Effects limited to lines below
         emit ClaimCreated(
-            msg.sender,
+            _recipient,
             startTimestamp,
             endTimestamp,
             cliffReleaseTimestamp,
@@ -378,6 +364,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         uint112 _cliffAmount,
         uint112 _fractionalAmount
     ) external onlyAdmin {
+        // check if it already has vesting schedule.
+        require(startTimestamp == 0, "CLAIM_ALREADY_EXISTS");
+
         _createClaimUnchecked(
             _recipient,
             _startTimestamp,
@@ -389,57 +378,17 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         );
 
         // Mint ERC1155 NFT to the recipient
-        IVestingNFT(nftAddress).mint(_recipient, _fractionalAmount);
+        _mint(_recipient, _amount);
         fractionalAmount = _fractionalAmount;
 
         // set isActive as true
-        uint112 lastId = _fractionalAmount + startNftId;
-        for (uint112 i = startNftId; i <= lastId; ) {
+        for (uint112 i = 1; i <= _fractionalAmount; ) {
             unchecked {
                 isActives[i] = true;
                 ++i;
             }
         }
     }
-
-    // /**
-    // @notice The batch version of the createClaim function. Each argument is an array, and this function simply repeatedly calls the createClaim.
-
-    //  */
-    // function createClaimsBatch(
-    //     address[] memory _recipients,
-    //     uint40[] memory _startTimestamps,
-    //     uint40[] memory _endTimestamps,
-    //     uint40[] memory _cliffReleaseTimestamps,
-    //     uint40[] memory _releaseIntervalsSecs,
-    //     uint112[] memory _linearVestAmounts,
-    //     uint112[] memory _cliffAmounts
-    // ) external onlyAdmin {
-    //     uint256 length = _recipients.length;
-    //     require(
-    //         _startTimestamps.length == length &&
-    //             _endTimestamps.length == length &&
-    //             _cliffReleaseTimestamps.length == length &&
-    //             _releaseIntervalsSecs.length == length &&
-    //             _linearVestAmounts.length == length &&
-    //             _cliffAmounts.length == length,
-    //         "ARRAY_LENGTH_MISMATCH"
-    //     );
-
-    //     for (uint256 i = 0; i < length; i++) {
-    //         _createClaimUnchecked(
-    //             _recipients[i],
-    //             _startTimestamps[i],
-    //             _endTimestamps[i],
-    //             _cliffReleaseTimestamps[i],
-    //             _releaseIntervalsSecs[i],
-    //             _linearVestAmounts[i],
-    //             _cliffAmounts[i]
-    //         );
-    //     }
-
-    //     // No need for separate emit, since createClaim will emit for each claim (and this function is merely a convenience/gas-saver for multiple claims creation)
-    // }
 
     /**
     @notice Withdraw the full claimable balance.
