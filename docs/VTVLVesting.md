@@ -10,23 +10,6 @@
 
 ## Methods
 
-### allVestingRecipients
-
-```solidity
-function allVestingRecipients() external view returns (address[])
-```
-
-Return all the addresses that have vesting schedules attached.
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address[] | undefined |
-
 ### amountAvailableToWithdrawByAdmin
 
 ```solidity
@@ -44,10 +27,49 @@ Get amount that is not vested in contract
 |---|---|---|
 | _0 | uint256 | undefined |
 
+### approve
+
+```solidity
+function approve(address to, uint256 tokenId) external payable
+```
+
+
+
+*Gives permission to `to` to transfer `tokenId` token to another account. The approval is cleared when the token is transferred. Only a single account can be approved at a time, so approving the zero address clears previous approvals. Requirements: - The caller must own the token or be an approved operator. - `tokenId` must exist. Emits an {Approval} event.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| to | address | undefined |
+| tokenId | uint256 | undefined |
+
+### balanceOf
+
+```solidity
+function balanceOf(address owner) external view returns (uint256)
+```
+
+
+
+*Returns the number of tokens in `owner`&#39;s account.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| owner | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### claimableAmount
 
 ```solidity
-function claimableAmount(address _recipient) external view returns (uint256)
+function claimableAmount(uint256 _fractionalId) external view returns (uint256)
 ```
 
 Calculates how much can we claim, by subtracting the already withdrawn amount from the vestedAmount at this moment.
@@ -58,7 +80,7 @@ Calculates how much can we claim, by subtracting the already withdrawn amount fr
 
 | Name | Type | Description |
 |---|---|---|
-| _recipient | address | - The address for whom we&#39;re calculating |
+| _fractionalId | uint256 | - The fractional NFT Id for whom we&#39;re calculating |
 
 #### Returns
 
@@ -66,10 +88,44 @@ Calculates how much can we claim, by subtracting the already withdrawn amount fr
 |---|---|---|
 | _0 | uint256 | undefined |
 
+### cliffAmount
+
+```solidity
+function cliffAmount() external view returns (uint112)
+```
+
+
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint112 | undefined |
+
+### cliffReleaseTimestamp
+
+```solidity
+function cliffReleaseTimestamp() external view returns (uint40)
+```
+
+
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint40 | undefined |
+
 ### createClaim
 
 ```solidity
-function createClaim(address _recipient, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _linearVestAmount, uint112 _cliffAmount) external nonpayable
+function createClaim(address _recipient, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _linearVestAmount, uint112 _cliffAmount, uint112 _fractionalAmount) external nonpayable
 ```
 
 Create a claim based on the input parameters.
@@ -87,33 +143,29 @@ Create a claim based on the input parameters.
 | _releaseIntervalSecs | uint40 | - The release interval for the linear vesting. If this is, for example, 60, that means that the linearly vested amount gets released every 60 seconds. |
 | _linearVestAmount | uint112 | - The total amount to be linearly vested between _startTimestamp and _endTimestamp |
 | _cliffAmount | uint112 | - The amount released at _cliffReleaseTimestamp. Can be 0 if _cliffReleaseTimestamp is also 0. |
+| _fractionalAmount | uint112 | - The amount of fractionals |
 
-### createClaimsBatch
+### endTimestamp
 
 ```solidity
-function createClaimsBatch(address[] _recipients, uint40[] _startTimestamps, uint40[] _endTimestamps, uint40[] _cliffReleaseTimestamps, uint40[] _releaseIntervalsSecs, uint112[] _linearVestAmounts, uint112[] _cliffAmounts) external nonpayable
+function endTimestamp() external view returns (uint40)
 ```
 
-The batch version of the createClaim function. Each argument is an array, and this function simply repeatedly calls the createClaim.
 
 
 
-#### Parameters
+
+
+#### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _recipients | address[] | undefined |
-| _startTimestamps | uint40[] | undefined |
-| _endTimestamps | uint40[] | undefined |
-| _cliffReleaseTimestamps | uint40[] | undefined |
-| _releaseIntervalsSecs | uint40[] | undefined |
-| _linearVestAmounts | uint112[] | undefined |
-| _cliffAmounts | uint112[] | undefined |
+| _0 | uint40 | undefined |
 
 ### finalVestedAmount
 
 ```solidity
-function finalVestedAmount(address _recipient) external view returns (uint256)
+function finalVestedAmount(uint256 _fractionalId) external view returns (uint256)
 ```
 
 Calculate the total vested at the end of the schedule, by simply feeding in the end timestamp to the function above.
@@ -124,7 +176,7 @@ Calculate the total vested at the end of the schedule, by simply feeding in the 
 
 | Name | Type | Description |
 |---|---|---|
-| _recipient | address | - The address for whom we&#39;re calculating |
+| _fractionalId | uint256 | - The factional NFT id for whom we&#39;re calculating |
 
 #### Returns
 
@@ -132,27 +184,111 @@ Calculate the total vested at the end of the schedule, by simply feeding in the 
 |---|---|---|
 | _0 | uint256 | undefined |
 
-### getClaim
+### fractionalAmount
 
 ```solidity
-function getClaim(address _recipient) external view returns (struct VTVLVesting.Claim)
+function fractionalAmount() external view returns (uint256)
 ```
 
-Basic getter for a claim. 
 
-*Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)). *
 
-#### Parameters
 
-| Name | Type | Description |
-|---|---|---|
-| _recipient | address | - the address for which we fetch the claim. |
+
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | VTVLVesting.Claim | undefined |
+| _0 | uint256 | undefined |
+
+### getApproved
+
+```solidity
+function getApproved(uint256 tokenId) external view returns (address)
+```
+
+
+
+*Returns the account approved for `tokenId` token. Requirements: - `tokenId` must exist.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| tokenId | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+### getClaim
+
+```solidity
+function getClaim() external view returns (uint40, uint40, uint40, uint40, uint256, uint112, uint256)
+```
+
+Basic getter for a claim.
+
+*Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)).*
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint40 | undefined |
+| _1 | uint40 | undefined |
+| _2 | uint40 | undefined |
+| _3 | uint40 | undefined |
+| _4 | uint256 | undefined |
+| _5 | uint112 | undefined |
+| _6 | uint256 | undefined |
+
+### getWithdrawnAmount
+
+```solidity
+function getWithdrawnAmount(uint256 _fractionalId) external view returns (uint256)
+```
+
+Get the withdrawn amount for each nfts. 
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _fractionalId | uint256 | - the Id of NFT that you are going to get the withdrawn amount |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### isActives
+
+```solidity
+function isActives(uint256) external view returns (bool)
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
 
 ### isAdmin
 
@@ -176,6 +312,80 @@ function isAdmin(address _addressToCheck) external view returns (bool)
 |---|---|---|
 | _0 | bool | undefined |
 
+### isApprovedForAll
+
+```solidity
+function isApprovedForAll(address owner, address operator) external view returns (bool)
+```
+
+
+
+*Returns if the `operator` is allowed to manage all of the assets of `owner`. See {setApprovalForAll}.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| owner | address | undefined |
+| operator | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
+
+### linearVestAmount
+
+```solidity
+function linearVestAmount() external view returns (uint256)
+```
+
+
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### name
+
+```solidity
+function name() external view returns (string)
+```
+
+
+
+*Returns the token collection name.*
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | string | undefined |
+
+### numFractionals
+
+```solidity
+function numFractionals() external view returns (uint256)
+```
+
+Get the total number of fractional NFTs.
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### numTokensReservedForVesting
 
 ```solidity
@@ -193,13 +403,52 @@ How many tokens are already allocated to vesting schedules.
 |---|---|---|
 | _0 | uint256 | undefined |
 
-### numVestingRecipients
+### owner
 
 ```solidity
-function numVestingRecipients() external view returns (uint256)
+function owner() external view returns (address)
 ```
 
-Get the total number of vesting recipients.
+
+
+*Returns the address of the current owner.*
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+### ownerOf
+
+```solidity
+function ownerOf(uint256 tokenId) external view returns (address)
+```
+
+
+
+*Returns the owner of the `tokenId` token. Requirements: - `tokenId` must exist.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| tokenId | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+### releaseIntervalSecs
+
+```solidity
+function releaseIntervalSecs() external view returns (uint40)
+```
+
+
 
 
 
@@ -208,12 +457,23 @@ Get the total number of vesting recipients.
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | undefined |
+| _0 | uint40 | undefined |
+
+### renounceOwnership
+
+```solidity
+function renounceOwnership() external nonpayable
+```
+
+
+
+*Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.*
+
 
 ### revokeClaim
 
 ```solidity
-function revokeClaim(address _recipient) external nonpayable
+function revokeClaim(uint256 _fractionalId) external nonpayable
 ```
 
 Allow an Owner to revoke a claim that is already active.
@@ -224,7 +484,44 @@ Allow an Owner to revoke a claim that is already active.
 
 | Name | Type | Description |
 |---|---|---|
-| _recipient | address | undefined |
+| _fractionalId | uint256 | undefined |
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address from, address to, uint256 tokenId) external payable
+```
+
+
+
+*Equivalent to `safeTransferFrom(from, to, tokenId, &#39;&#39;)`.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| from | address | undefined |
+| to | address | undefined |
+| tokenId | uint256 | undefined |
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address from, address to, uint256 tokenId, bytes _data) external payable
+```
+
+
+
+*Safely transfers `tokenId` token from `from` to `to`. Requirements: - `from` cannot be the zero address. - `to` cannot be the zero address. - `tokenId` token must exist and be owned by `from`. - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}. - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer. Emits a {Transfer} event.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| from | address | undefined |
+| to | address | undefined |
+| tokenId | uint256 | undefined |
+| _data | bytes | undefined |
 
 ### setAdmin
 
@@ -243,6 +540,95 @@ Set/unset Admin Access for a given address.
 | admin | address | - Address of the new admin (or the one to be removed) |
 | isEnabled | bool | - Enable/Disable Admin Access |
 
+### setApprovalForAll
+
+```solidity
+function setApprovalForAll(address operator, bool approved) external nonpayable
+```
+
+
+
+*Approve or remove `operator` as an operator for the caller. Operators can call {transferFrom} or {safeTransferFrom} for any token owned by the caller. Requirements: - The `operator` cannot be the caller. Emits an {ApprovalForAll} event.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| operator | address | undefined |
+| approved | bool | undefined |
+
+### setBaseURI
+
+```solidity
+function setBaseURI(string baseURI_) external nonpayable
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| baseURI_ | string | undefined |
+
+### startTimestamp
+
+```solidity
+function startTimestamp() external view returns (uint40)
+```
+
+
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint40 | undefined |
+
+### supportsInterface
+
+```solidity
+function supportsInterface(bytes4 interfaceId) external view returns (bool)
+```
+
+
+
+*Returns true if this contract implements the interface defined by `interfaceId`. See the corresponding [EIP section](https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified) to learn more about how these ids are created. This function call must use less than 30000 gas.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| interfaceId | bytes4 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
+
+### symbol
+
+```solidity
+function symbol() external view returns (string)
+```
+
+
+
+*Returns the token collection symbol.*
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | string | undefined |
+
 ### tokenAddress
 
 ```solidity
@@ -260,10 +646,83 @@ Address of the token that we&#39;re vesting
 |---|---|---|
 | _0 | contract IERC20 | undefined |
 
+### tokenURI
+
+```solidity
+function tokenURI(uint256 tokenId) external view returns (string)
+```
+
+
+
+*Returns the Uniform Resource Identifier (URI) for `tokenId` token.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| tokenId | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | string | undefined |
+
+### totalSupply
+
+```solidity
+function totalSupply() external view returns (uint256)
+```
+
+
+
+*Returns the total number of tokens in existence. Burned tokens will reduce the count. To get the total number of tokens minted, please see {_totalMinted}.*
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### transferFrom
+
+```solidity
+function transferFrom(address from, address to, uint256 tokenId) external payable
+```
+
+
+
+*Transfers `tokenId` from `from` to `to`. Requirements: - `from` cannot be the zero address. - `to` cannot be the zero address. - `tokenId` token must be owned by `from`. - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}. Emits a {Transfer} event.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| from | address | undefined |
+| to | address | undefined |
+| tokenId | uint256 | undefined |
+
+### transferOwnership
+
+```solidity
+function transferOwnership(address newOwner) external nonpayable
+```
+
+
+
+*Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| newOwner | address | undefined |
+
 ### vestedAmount
 
 ```solidity
-function vestedAmount(address _recipient, uint40 _referenceTs) external view returns (uint256)
+function vestedAmount(uint256 _fractionalId, uint40 _referenceTs) external view returns (uint256)
 ```
 
 Calculate the amount vested for a given _recipient at a reference timestamp.
@@ -274,7 +733,7 @@ Calculate the amount vested for a given _recipient at a reference timestamp.
 
 | Name | Type | Description |
 |---|---|---|
-| _recipient | address | - The address for whom we&#39;re calculating |
+| _fractionalId | uint256 | - The ID of fractional NFT. |
 | _referenceTs | uint40 | - The timestamp at which we want to calculate the vested amount. |
 
 #### Returns
@@ -286,13 +745,18 @@ Calculate the amount vested for a given _recipient at a reference timestamp.
 ### withdraw
 
 ```solidity
-function withdraw() external nonpayable
+function withdraw(uint256 _fractionalId) external nonpayable
 ```
 
 Withdraw the full claimable balance.
 
 *hasActiveClaim throws off anyone without a claim.*
 
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _fractionalId | uint256 | - The fraction NFT Id that is going to withdraw with. |
 
 ### withdrawAdmin
 
@@ -364,10 +828,46 @@ Emitted when admin withdraws.
 | _recipient `indexed` | address | undefined |
 | _amountRequested  | uint256 | undefined |
 
+### Approval
+
+```solidity
+event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| owner `indexed` | address | undefined |
+| approved `indexed` | address | undefined |
+| tokenId `indexed` | uint256 | undefined |
+
+### ApprovalForAll
+
+```solidity
+event ApprovalForAll(address indexed owner, address indexed operator, bool approved)
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| owner `indexed` | address | undefined |
+| operator `indexed` | address | undefined |
+| approved  | bool | undefined |
+
 ### ClaimCreated
 
 ```solidity
-event ClaimCreated(address indexed _recipient, VTVLVesting.Claim _claim)
+event ClaimCreated(address indexed _owner, uint256 _fractionalAmount, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _cliffAmount, uint256 _linearVestAmount)
 ```
 
 Emitted when a founder adds a vesting schedule.
@@ -378,13 +878,19 @@ Emitted when a founder adds a vesting schedule.
 
 | Name | Type | Description |
 |---|---|---|
-| _recipient `indexed` | address | undefined |
-| _claim  | VTVLVesting.Claim | undefined |
+| _owner `indexed` | address | undefined |
+| _fractionalAmount  | uint256 | undefined |
+| _startTimestamp  | uint40 | undefined |
+| _endTimestamp  | uint40 | undefined |
+| _cliffReleaseTimestamp  | uint40 | undefined |
+| _releaseIntervalSecs  | uint40 | undefined |
+| _cliffAmount  | uint112 | undefined |
+| _linearVestAmount  | uint256 | undefined |
 
 ### ClaimRevoked
 
 ```solidity
-event ClaimRevoked(address indexed _recipient, uint256 _numTokensWithheld, uint256 revocationTimestamp, VTVLVesting.Claim _claim)
+event ClaimRevoked(uint256 indexed _fractionalId, uint256 _numTokensWithheld, uint256 revocationTimestamp)
 ```
 
 Emitted when a claim is revoked
@@ -395,15 +901,14 @@ Emitted when a claim is revoked
 
 | Name | Type | Description |
 |---|---|---|
-| _recipient `indexed` | address | undefined |
+| _fractionalId `indexed` | uint256 | undefined |
 | _numTokensWithheld  | uint256 | undefined |
 | revocationTimestamp  | uint256 | undefined |
-| _claim  | VTVLVesting.Claim | undefined |
 
 ### Claimed
 
 ```solidity
-event Claimed(address indexed _recipient, uint256 _withdrawalAmount)
+event Claimed(address indexed _recipient, uint256 _fractionalId, uint256 _withdrawalAmount)
 ```
 
 Emitted when someone withdraws a vested amount
@@ -415,7 +920,208 @@ Emitted when someone withdraws a vested amount
 | Name | Type | Description |
 |---|---|---|
 | _recipient `indexed` | address | undefined |
+| _fractionalId  | uint256 | undefined |
 | _withdrawalAmount  | uint256 | undefined |
+
+### ConsecutiveTransfer
+
+```solidity
+event ConsecutiveTransfer(uint256 indexed fromTokenId, uint256 toTokenId, address indexed from, address indexed to)
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| fromTokenId `indexed` | uint256 | undefined |
+| toTokenId  | uint256 | undefined |
+| from `indexed` | address | undefined |
+| to `indexed` | address | undefined |
+
+### OwnershipTransferred
+
+```solidity
+event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| previousOwner `indexed` | address | undefined |
+| newOwner `indexed` | address | undefined |
+
+### Transfer
+
+```solidity
+event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+```
+
+
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| from `indexed` | address | undefined |
+| to `indexed` | address | undefined |
+| tokenId `indexed` | uint256 | undefined |
+
+
+
+## Errors
+
+### ApprovalCallerNotOwnerNorApproved
+
+```solidity
+error ApprovalCallerNotOwnerNorApproved()
+```
+
+The caller must own the token or be an approved operator.
+
+
+
+
+### ApprovalQueryForNonexistentToken
+
+```solidity
+error ApprovalQueryForNonexistentToken()
+```
+
+The token does not exist.
+
+
+
+
+### BalanceQueryForZeroAddress
+
+```solidity
+error BalanceQueryForZeroAddress()
+```
+
+Cannot query the balance for the zero address.
+
+
+
+
+### MintERC2309QuantityExceedsLimit
+
+```solidity
+error MintERC2309QuantityExceedsLimit()
+```
+
+The `quantity` minted with ERC2309 exceeds the safety limit.
+
+
+
+
+### MintToZeroAddress
+
+```solidity
+error MintToZeroAddress()
+```
+
+Cannot mint to the zero address.
+
+
+
+
+### MintZeroQuantity
+
+```solidity
+error MintZeroQuantity()
+```
+
+The quantity of tokens minted must be more than zero.
+
+
+
+
+### OwnerQueryForNonexistentToken
+
+```solidity
+error OwnerQueryForNonexistentToken()
+```
+
+The token does not exist.
+
+
+
+
+### OwnershipNotInitializedForExtraData
+
+```solidity
+error OwnershipNotInitializedForExtraData()
+```
+
+The `extraData` cannot be set on an unintialized ownership slot.
+
+
+
+
+### TransferCallerNotOwnerNorApproved
+
+```solidity
+error TransferCallerNotOwnerNorApproved()
+```
+
+The caller must own the token or be an approved operator.
+
+
+
+
+### TransferFromIncorrectOwner
+
+```solidity
+error TransferFromIncorrectOwner()
+```
+
+The token must be owned by `from`.
+
+
+
+
+### TransferToNonERC721ReceiverImplementer
+
+```solidity
+error TransferToNonERC721ReceiverImplementer()
+```
+
+Cannot safely transfer to a contract that does not implement the ERC721Receiver interface.
+
+
+
+
+### TransferToZeroAddress
+
+```solidity
+error TransferToZeroAddress()
+```
+
+Cannot transfer to the zero address.
+
+
+
+
+### URIQueryForNonexistentToken
+
+```solidity
+error URIQueryForNonexistentToken()
+```
+
+The token does not exist.
+
+
 
 
 

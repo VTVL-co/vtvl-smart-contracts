@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.19;
+pragma solidity 0.8.14;
 // Note: using solidity 0.8, SafeMath not needed any more
 
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -30,26 +30,23 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
 
     // Using 40 bits for timestamp (seconds)
     // Gives us a range from 1 Jan 1970 (Unix epoch) up to approximately 35 thousand years from then (2^40 / (365 * 24 * 60 * 60) ~= 35k)
-    uint40 startTimestamp; // When does the vesting start (40 bits is enough for TS)
-    uint40 endTimestamp; // When does the vesting end - the vesting goes linearly between the start and end timestamps
-    uint40 cliffReleaseTimestamp; // At which timestamp is the cliffAmount released. This must be <= startTimestamp
-    uint40 releaseIntervalSecs; // Every how many seconds does the vested amount increase.
+    uint40 public startTimestamp; // When does the vesting start (40 bits is enough for TS)
+    uint40 public endTimestamp; // When does the vesting end - the vesting goes linearly between the start and end timestamps
+    uint40 public cliffReleaseTimestamp; // At which timestamp is the cliffAmount released. This must be <= startTimestamp
+    uint40 public releaseIntervalSecs; // Every how many seconds does the vested amount increase.
     // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
     // uint112 range: range 0 –                             5,192,296,858,534,827.
-    uint256 linearVestAmount; // total entitlement
-    uint112 cliffAmount; // how much is released at the cliff
+    uint256 public linearVestAmount; // total entitlement
+    uint112 public cliffAmount; // how much is released at the cliff
 
     // withdrawn amount for each NFTs
-    mapping(uint256 => uint256) withdrawnAmounts;
+    mapping(uint256 => uint256) private withdrawnAmounts;
 
     // active status for each NFTs
-    mapping(uint256 => bool) isActives;
+    mapping(uint256 => bool) public isActives;
 
     // amount of fractional nfts
-    uint256 fractionalAmount;
-
-    // base token URI
-    string baseURI;
+    uint256 public fractionalAmount;
 
     // Events:
     /**
@@ -57,12 +54,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
      */
     event ClaimCreated(
         address indexed _owner,
-        address _nftAddress,
         uint256 _fractionalAmount,
         uint40 _startTimestamp,
         uint40 _endTimestamp,
         uint40 _cliffReleaseTimestamp,
-        utin40 _releaseIntervalSecs,
+        uint40 _releaseIntervalSecs,
         uint112 _cliffAmount,
         uint256 _linearVestAmount
     ); // let everyone know
@@ -82,8 +78,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     event ClaimRevoked(
         uint256 indexed _fractionalId,
         uint256 _numTokensWithheld,
-        uint256 revocationTimestamp,
-        Claim _claim
+        uint256 revocationTimestamp
     );
 
     /** 
@@ -101,14 +96,33 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         tokenAddress = _tokenAddress;
     }
 
-    // /**
-    // @notice Basic getter for a claim.
-    // @dev Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)).
-    // @param _recipient - the address for which we fetch the claim.
-    //  */
-    // function getClaim(address _recipient) external view returns (Claim memory) {
-    //     return claims[_recipient];
-    // }
+    /**
+    @notice Basic getter for a claim.
+    @dev Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)).
+     */
+    function getClaim()
+        external
+        view
+        returns (
+            uint40,
+            uint40,
+            uint40,
+            uint40,
+            uint256,
+            uint112,
+            uint256
+        )
+    {
+        return (
+            startTimestamp,
+            endTimestamp,
+            cliffReleaseTimestamp,
+            releaseIntervalSecs,
+            linearVestAmount,
+            cliffAmount,
+            fractionalAmount
+        );
+    }
 
     /**
     @notice Get the withdrawn amount for each nfts. 
@@ -126,7 +140,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     @notice This modifier requires that an user has a fractional NFT.
     */
     modifier isNFTOwner(uint256 _nftId) {
-        requires(ownerOf(_nftId) == msg.sender, "NO_NFT_OWNER");
+        require(ownerOf(_nftId) == msg.sender, "NO_NFT_OWNER");
         _;
     }
 
@@ -160,7 +174,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
      */
     function _baseVestedAmount(uint256 _fractionalId, uint40 _referenceTs)
         internal
-        pure
+        view
         returns (uint256)
     {
         uint256 vestAmt = 0;
@@ -193,12 +207,12 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
                 // Since fraction_of_interval_completed is truncatedCurrentVestingDurationSecs / finalVestingDurationSecs, the formula becomes
                 // truncatedCurrentVestingDurationSecs / finalVestingDurationSecs * linearVestAmount, so we can rewrite as below to avoid
                 // rounding errors
-                uint256 linearVestAmount = (linearVestAmount *
+                uint256 _linearVestAmount = (linearVestAmount *
                     truncatedCurrentVestingDurationSecs) /
                     finalVestingDurationSecs;
 
                 // Having calculated the linearVestAmount, simply add it to the vested amount
-                vestAmt += linearVestAmount;
+                vestAmt += _linearVestAmount;
             }
 
             return vestAmt / fractionalAmount;
@@ -263,7 +277,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     @notice Get the total number of fractional NFTs.
     */
     function numFractionals() external view returns (uint256) {
-        return fractionalAmounts;
+        return fractionalAmount;
     }
 
     /** 
@@ -288,6 +302,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         uint112 _linearVestAmount,
         uint112 _cliffAmount
     ) private {
+        require(_recipient != address(0), "INVALID_ADDRESS");
         require(_linearVestAmount + _cliffAmount > 0, "INVALID_VESTED_AMOUNT"); // Actually only one of linearvested/cliff amount must be 0, not necessarily both
         require(_startTimestamp > 0, "INVALID_START_TIMESTAMP");
         // Do we need to check whether _startTimestamp is greater than the current block.timestamp?
@@ -338,7 +353,6 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         // Effects limited to lines below
         emit ClaimCreated(
             _recipient,
-            address(this),
             _fractionalAmount,
             startTimestamp,
             endTimestamp,
@@ -386,7 +400,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         );
 
         // Mint ERC1155 NFT to the recipient
-        _mint(_recipient, _amount);
+        _mint(_recipient, _fractionalAmount);
         fractionalAmount = _fractionalAmount;
 
         // set isActive as true
@@ -472,7 +486,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     function revokeClaim(uint256 _fractionalId)
         external
         onlyAdmin
-        hasActiveClaim
+        hasActiveClaim(_fractionalId)
     {
         // Calculate what the claim should finally vest to
         uint256 finalVestAmt = finalVestedAmount(_fractionalId);
@@ -496,8 +510,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         emit ClaimRevoked(
             _fractionalId,
             amountRemaining,
-            uint40(block.timestamp),
-            _claim
+            uint40(block.timestamp)
         );
     }
 

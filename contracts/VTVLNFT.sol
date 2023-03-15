@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.19;
+pragma solidity 0.8.14;
 // Note: using solidity 0.8, SafeMath not needed any more
 
 import "@openzeppelin/contracts/access/Ownable.sol";
