@@ -34,19 +34,16 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     uint40 public endTimestamp; // When does the vesting end - the vesting goes linearly between the start and end timestamps
     uint40 public cliffReleaseTimestamp; // At which timestamp is the cliffAmount released. This must be <= startTimestamp
     uint40 public releaseIntervalSecs; // Every how many seconds does the vested amount increase.
+    uint40 public fractionalAmount; // amount of fractional nfts
+    uint112 public cliffAmount; // how much is released at the cliff
     // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
     // uint112 range: range 0 –                             5,192,296,858,534,827.
     uint256 public linearVestAmount; // total entitlement
-    uint112 public cliffAmount; // how much is released at the cliff
-
     // withdrawn amount for each NFTs
     mapping(uint256 => uint256) private withdrawnAmounts;
 
     // active status for each NFTs
     mapping(uint256 => bool) public isActives;
-
-    // amount of fractional nfts
-    uint256 public fractionalAmount;
 
     // Events:
     /**
@@ -54,7 +51,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
      */
     event ClaimCreated(
         address indexed _owner,
-        uint256 _fractionalAmount,
+        uint40 _fractionalAmount,
         uint40 _startTimestamp,
         uint40 _endTimestamp,
         uint40 _cliffReleaseTimestamp,
@@ -110,7 +107,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
             uint40,
             uint256,
             uint112,
-            uint256
+            uint40
         )
     {
         return (
@@ -276,7 +273,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     /** 
     @notice Get the total number of fractional NFTs.
     */
-    function numFractionals() external view returns (uint256) {
+    function numFractionals() external view returns (uint40) {
         return fractionalAmount;
     }
 
@@ -294,7 +291,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
      */
     function _createClaimUnchecked(
         address _recipient,
-        uint256 _fractionalAmount,
+        uint40 _fractionalAmount,
         uint40 _startTimestamp,
         uint40 _endTimestamp,
         uint40 _cliffReleaseTimestamp,
@@ -383,7 +380,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         uint40 _releaseIntervalSecs,
         uint112 _linearVestAmount,
         uint112 _cliffAmount,
-        uint112 _fractionalAmount
+        uint40 _fractionalAmount
     ) external onlyAdmin {
         // check if it already has vesting schedule.
         require(startTimestamp == 0, "CLAIM_ALREADY_EXISTS");
@@ -404,7 +401,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         fractionalAmount = _fractionalAmount;
 
         // set isActive as true
-        for (uint112 i = 1; i <= _fractionalAmount; ) {
+        for (uint256 i = 1; i <= _fractionalAmount; ) {
             unchecked {
                 isActives[i] = true;
                 ++i;

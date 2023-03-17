@@ -125,7 +125,7 @@ function cliffReleaseTimestamp() external view returns (uint40)
 ### createClaim
 
 ```solidity
-function createClaim(address _recipient, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _linearVestAmount, uint112 _cliffAmount, uint112 _fractionalAmount) external nonpayable
+function createClaim(address _recipient, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _linearVestAmount, uint112 _cliffAmount, uint40 _fractionalAmount) external nonpayable
 ```
 
 Create a claim based on the input parameters.
@@ -143,7 +143,7 @@ Create a claim based on the input parameters.
 | _releaseIntervalSecs | uint40 | - The release interval for the linear vesting. If this is, for example, 60, that means that the linearly vested amount gets released every 60 seconds. |
 | _linearVestAmount | uint112 | - The total amount to be linearly vested between _startTimestamp and _endTimestamp |
 | _cliffAmount | uint112 | - The amount released at _cliffReleaseTimestamp. Can be 0 if _cliffReleaseTimestamp is also 0. |
-| _fractionalAmount | uint112 | - The amount of fractionals |
+| _fractionalAmount | uint40 | - The amount of fractionals |
 
 ### endTimestamp
 
@@ -187,7 +187,7 @@ Calculate the total vested at the end of the schedule, by simply feeding in the 
 ### fractionalAmount
 
 ```solidity
-function fractionalAmount() external view returns (uint256)
+function fractionalAmount() external view returns (uint40)
 ```
 
 
@@ -199,7 +199,7 @@ function fractionalAmount() external view returns (uint256)
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | undefined |
+| _0 | uint40 | undefined |
 
 ### getApproved
 
@@ -226,7 +226,7 @@ function getApproved(uint256 tokenId) external view returns (address)
 ### getClaim
 
 ```solidity
-function getClaim() external view returns (uint40, uint40, uint40, uint40, uint256, uint112, uint256)
+function getClaim() external view returns (uint40, uint40, uint40, uint40, uint256, uint112, uint40)
 ```
 
 Basic getter for a claim.
@@ -244,7 +244,7 @@ Basic getter for a claim.
 | _3 | uint40 | undefined |
 | _4 | uint256 | undefined |
 | _5 | uint112 | undefined |
-| _6 | uint256 | undefined |
+| _6 | uint40 | undefined |
 
 ### getWithdrawnAmount
 
@@ -372,7 +372,7 @@ function name() external view returns (string)
 ### numFractionals
 
 ```solidity
-function numFractionals() external view returns (uint256)
+function numFractionals() external view returns (uint40)
 ```
 
 Get the total number of fractional NFTs.
@@ -384,7 +384,7 @@ Get the total number of fractional NFTs.
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | undefined |
+| _0 | uint40 | undefined |
 
 ### numTokensReservedForVesting
 
@@ -867,7 +867,7 @@ event ApprovalForAll(address indexed owner, address indexed operator, bool appro
 ### ClaimCreated
 
 ```solidity
-event ClaimCreated(address indexed _owner, uint256 _fractionalAmount, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _cliffAmount, uint256 _linearVestAmount)
+event ClaimCreated(address indexed _owner, uint40 _fractionalAmount, uint40 _startTimestamp, uint40 _endTimestamp, uint40 _cliffReleaseTimestamp, uint40 _releaseIntervalSecs, uint112 _cliffAmount, uint256 _linearVestAmount)
 ```
 
 Emitted when a founder adds a vesting schedule.
@@ -879,7 +879,7 @@ Emitted when a founder adds a vesting schedule.
 | Name | Type | Description |
 |---|---|---|
 | _owner `indexed` | address | undefined |
-| _fractionalAmount  | uint256 | undefined |
+| _fractionalAmount  | uint40 | undefined |
 | _startTimestamp  | uint40 | undefined |
 | _endTimestamp  | uint40 | undefined |
 | _cliffReleaseTimestamp  | uint40 | undefined |
