@@ -268,13 +268,13 @@ Get the withdrawn amount for each nfts.
 |---|---|---|
 | _0 | uint256 | undefined |
 
-### isActives
+### isActive
 
 ```solidity
-function isActives(uint256) external view returns (bool)
+function isActive(uint256 _fractionalId) external view returns (bool)
 ```
 
-
+Return active status of Fraction NFT
 
 
 
@@ -282,7 +282,7 @@ function isActives(uint256) external view returns (bool)
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | undefined |
+| _fractionalId | uint256 | undefined |
 
 #### Returns
 

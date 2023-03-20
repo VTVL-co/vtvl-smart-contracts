@@ -11,12 +11,6 @@ import "./VTVLVesting.sol";
 /// @notice Create Vesting contract
 
 contract VTVLVestingFactory is Ownable {
-    /**
-     * @notice Initialize ERC1155
-     * @dev tokenId will start from 1
-     */
-    constructor() {}
-
     event CreateVestingContract(
         address indexed vestingAddress,
         address deployer

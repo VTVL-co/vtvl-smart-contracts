@@ -18,6 +18,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
      */
     IERC20 public immutable tokenAddress;
 
+    struct FractionClaim {
+        uint248 withdrawnAmount;
+        bool isActive;
+    }
+
     /**
     @notice How many tokens are already allocated to vesting schedules.
     @dev Our balance of the token must always be greater than this amount.
@@ -39,11 +44,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     // uint112 range: range 0 –     5,192,296,858,534,827,628,530,496,329,220,095.
     // uint112 range: range 0 –                             5,192,296,858,534,827.
     uint256 public linearVestAmount; // total entitlement
-    // withdrawn amount for each NFTs
-    mapping(uint256 => uint256) private withdrawnAmounts;
 
-    // active status for each NFTs
-    mapping(uint256 => bool) public isActives;
+    // fraction info
+    mapping(uint256 => FractionClaim) private fractionClaims;
 
     // Events:
     /**
@@ -130,7 +133,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         view
         returns (uint256)
     {
-        return withdrawnAmounts[_fractionalId];
+        return fractionClaims[_fractionalId].withdrawnAmount;
     }
 
     /**
@@ -156,7 +159,10 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
 
         // We however still need the active check, since (due to the name of the function)
         // we want to only allow active claims
-        require(isActives[_fractionalId] == true, "NO_ACTIVE_CLAIM");
+        require(
+            fractionClaims[_fractionalId].isActive == true,
+            "NO_ACTIVE_CLAIM"
+        );
 
         // Save gas, omit further checks
         // require(_claim.linearVestAmount + _claim.cliffAmount > 0, "INVALID_VESTED_AMOUNT");
@@ -177,7 +183,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         uint256 vestAmt = 0;
 
         // the condition to have anything vested is to be active
-        if (isActives[_fractionalId]) {
+        if (fractionClaims[_fractionalId].isActive) {
             // no point of looking past the endTimestamp as nothing should vest afterwards
             // So if we're past the end, just get the ref frame back to the end
             if (_referenceTs > endTimestamp) {
@@ -219,7 +225,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         // Rationale: no matter how we calculate the vestAmt, we can never return that less was vested than was already withdrawn.
         // Case where this could be relevant - If the claim is inactive, vestAmt would be 0, yet if something was already withdrawn
         // on that claim, we want to return that as vested thus far - as we want the function to be monotonic.
-        return withdrawnAmounts[_fractionalId];
+        return fractionClaims[_fractionalId].withdrawnAmount;
     }
 
     /**
@@ -260,7 +266,14 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     {
         return
             _baseVestedAmount(_fractionalId, uint40(block.timestamp)) -
-            withdrawnAmounts[_fractionalId];
+            fractionClaims[_fractionalId].withdrawnAmount;
+    }
+
+    /**
+     * @notice Return active status of Fraction NFT
+     */
+    function isActive(uint256 _fractionalId) public view returns (bool) {
+        return fractionClaims[_fractionalId].isActive;
     }
 
     // /**
@@ -396,14 +409,14 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
             _cliffAmount
         );
 
-        // Mint ERC1155 NFT to the recipient
+        // Mint ERC721 NFT to the recipient
         _mint(_recipient, _fractionalAmount);
         fractionalAmount = _fractionalAmount;
 
         // set isActive as true
         for (uint256 i = 1; i <= _fractionalAmount; ) {
             unchecked {
-                isActives[i] = true;
+                fractionClaims[i].isActive = true;
                 ++i;
             }
         }
@@ -429,18 +442,20 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
             uint40(block.timestamp)
         );
 
+        uint248 withdrawnAmount = fractionClaims[_fractionalId].withdrawnAmount;
+
         // Make sure we didn't already withdraw more that we're allowed.
         require(
-            allowance > withdrawnAmounts[_fractionalId] && allowance > 0,
+            allowance > withdrawnAmount && allowance > 0,
             "NOTHING_TO_WITHDRAW"
         );
 
         // Calculate how much can we withdraw (equivalent to the above inequality)
-        uint256 amountRemaining = allowance - withdrawnAmounts[_fractionalId];
+        uint256 amountRemaining = allowance - withdrawnAmount;
 
         // "Double-entry bookkeeping"
         // Carry out the withdrawal by noting the withdrawn amount, and by transferring the tokens.
-        withdrawnAmounts[_fractionalId] += amountRemaining;
+        fractionClaims[_fractionalId].withdrawnAmount = uint248(allowance);
         // Reduce the allocated amount since the following transaction pays out so the "debt" gets reduced
         numTokensReservedForVesting -= amountRemaining;
 
@@ -488,19 +503,16 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         // Calculate what the claim should finally vest to
         uint256 finalVestAmt = finalVestedAmount(_fractionalId);
 
+        uint248 withdrawnAmount = fractionClaims[_fractionalId].withdrawnAmount;
         // No point in revoking something that has been fully consumed
         // so require that there be unconsumed amount
-        require(
-            withdrawnAmounts[_fractionalId] < finalVestAmt,
-            "NO_UNVESTED_AMOUNT"
-        );
+        require(withdrawnAmount < finalVestAmt, "NO_UNVESTED_AMOUNT");
 
         // The amount that is "reclaimed" is equal to the total allocation less what was already withdrawn
-        uint256 amountRemaining = finalVestAmt -
-            withdrawnAmounts[_fractionalId];
+        uint256 amountRemaining = finalVestAmt - withdrawnAmount;
 
         // Deactivate the claim, and release the appropriate amount of tokens
-        isActives[_fractionalId] = false; // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much
+        fractionClaims[_fractionalId].isActive = false; // This effectively reduces the liability by amountRemaining, so we can reduce the liability numTokensReservedForVesting by that much
         numTokensReservedForVesting -= amountRemaining; // Reduces the allocation
 
         // Tell everyone a claim has been revoked.

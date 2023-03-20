@@ -651,7 +651,7 @@ describe("Revoke Claim", async () => {
     );
     (await vestingContract.revokeClaim(1)).wait();
     // Make sure it gets reverted
-    expect(await await vestingContract.isActives(1)).to.be.equal(false);
+    expect(await await vestingContract.isActive(1)).to.be.equal(false);
   });
   it("prohibits a random user from revoking a valid claim", async () => {
     const { vestingContract } = await createPrefundedVestingContract({
@@ -674,7 +674,7 @@ describe("Revoke Claim", async () => {
       vestingContract.connect(owner2).revokeClaim(1)
     ).to.be.revertedWith("ADMIN_ACCESS_REQUIRED");
     // Make sure it stays active
-    expect(await await vestingContract.isActives(1)).to.be.equal(true);
+    expect(await await vestingContract.isActive(1)).to.be.equal(true);
   });
   it("fails to revoke an invalid claim", async () => {
     const { vestingContract } = await createPrefundedVestingContract({
