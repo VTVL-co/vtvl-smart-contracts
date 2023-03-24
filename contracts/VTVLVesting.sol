@@ -8,20 +8,31 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccessProtected.sol";
-import "./VTVLNFT.sol";
+import "./VTVLFraction.sol";
 
-contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
+/**
+  @dev Only users who have VTVLFraction NFT can claim
+  * The allocation will be divided into VTVLNFT amount(fraction amount).
+  * Each fractions will have same vesting schedule.
+  * Only differences are withdarwn amount and active status.
+*/
+contract VTVLVesting is
+    Context,
+    AccessProtected,
+    ReentrancyGuard,
+    VTVLFraction
+{
     using SafeERC20 for IERC20;
-
-    /**
-    @notice Address of the token that we're vesting
-     */
-    IERC20 public immutable tokenAddress;
 
     struct FractionClaim {
         uint248 withdrawnAmount;
         bool isActive;
     }
+
+    /**
+    @notice Address of the token that we're vesting
+     */
+    IERC20 public immutable tokenAddress;
 
     /**
     @notice How many tokens are already allocated to vesting schedules.
@@ -45,7 +56,13 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     // uint112 range: range 0 –                             5,192,296,858,534,827.
     uint256 public linearVestAmount; // total entitlement
 
-    // fraction info
+    /**
+    @notice Withdrawn amount and active status for each fractional NFTs
+    @dev Users will claim the token with fractional NFT.
+     * Admin can revoke the vesting for each fractional NFT
+     * withdrawnAmount: withdrawn amount for fractional NFT
+     * isActive: active status of fractional NFT
+     */
     mapping(uint256 => FractionClaim) private fractionClaims;
 
     // Events:
@@ -98,7 +115,6 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
 
     /**
     @notice Basic getter for a claim.
-    @dev Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)).
      */
     function getClaim()
         external
@@ -171,7 +187,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     }
 
     /**
-    @notice Pure function to calculate the vested amount from a given _claim, at a reference timestamp
+    @notice View function to calculate the vested amount from a given fractional NFT, at a reference timestamp
     @param _fractionalId Id of fractional NFT
     @param _referenceTs Timestamp for which we're calculating
      */
@@ -182,7 +198,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     {
         uint256 vestAmt = 0;
 
-        // the condition to have anything vested is to be active
+        // check if fractional NFT is active for claim
         if (fractionClaims[_fractionalId].isActive) {
             // no point of looking past the endTimestamp as nothing should vest afterwards
             // So if we're past the end, just get the ref frame back to the end
@@ -276,13 +292,6 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         return fractionClaims[_fractionalId].isActive;
     }
 
-    // /**
-    // @notice Return all the addresses that have vesting schedules attached.
-    // */
-    // function allVestingRecipients() external view returns (address[] memory) {
-    //     return vestingRecipients;
-    // }
-
     /** 
     @notice Get the total number of fractional NFTs.
     */
@@ -294,7 +303,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     @notice Permission-unchecked version of claim creation (no onlyAdmin). Actual logic for create claim, to be run within either createClaim or createClaimBatch.
     @dev This'll simply check the input parameters, and create the structure verbatim based on passed in parameters.
     @param _recipient - The address of the recipient of the schedule
-    @param _fractionalAmount - The amount of fractionals
+    @param _fractionalAmount - The amount of fractions
     @param _startTimestamp - The timestamp when the linear vesting starts
     @param _endTimestamp - The timestamp when the linear vesting ends
     @param _cliffReleaseTimestamp - The timestamp when the cliff is released (must be <= _startTimestamp, or 0 if no vesting)
@@ -410,10 +419,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
         );
 
         // Mint ERC721 NFT to the recipient
+        // NFT id will start from 1
         _mint(_recipient, _fractionalAmount);
         fractionalAmount = _fractionalAmount;
 
-        // set isActive as true
+        // set active status for each fractional NFTs
         for (uint256 i = 1; i <= _fractionalAmount; ) {
             unchecked {
                 fractionClaims[i].isActive = true;
@@ -425,7 +435,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     /**
     @notice Withdraw the full claimable balance.
     @dev hasActiveClaim throws off anyone without a claim.
-    @param _fractionalId - The fraction NFT Id that is going to withdraw with.
+    @param _fractionalId - The fractional NFT Id that is going to withdraw with.
      */
     function withdraw(uint256 _fractionalId)
         external
@@ -492,7 +502,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard, VTVLNFT {
     }
 
     /** 
-    @notice Allow an Owner to revoke a claim that is already active.
+    @notice Allow an Owner to revoke a claim for the fractional NFT that is already active.
     @dev The requirement is that a claim exists and that it's active.
     */
     function revokeClaim(uint256 _fractionalId)

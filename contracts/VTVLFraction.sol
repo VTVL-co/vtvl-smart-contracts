@@ -5,18 +5,16 @@ pragma solidity 0.8.14;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "erc721a/contracts/ERC721A.sol";
 
-contract VTVLNFT is Ownable, ERC721A {
+/**
+@notice NFT contract for fractions
+ */
+contract VTVLFraction is Ownable, ERC721A {
     // base token URI
     string baseURI;
 
-    //
-    /**
-    @notice Construct the contract, taking the ERC20 token to be vested as the parameter.
-    @dev The owner can set the contract in question when creating the contract.
-     */
-    constructor() ERC721A("VTVL Vesting", "VVN") {}
+    constructor() ERC721A("VTVL Fraction", "VVF") {}
 
-    // start token id will be 1
+    // tokenId will start from 1
     function _startTokenId() internal pure override returns (uint256) {
         return 1;
     }
