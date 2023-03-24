@@ -1,10 +1,10 @@
-# VTVLNFT
+# VTVLFraction
 
 
 
 
 
-
+NFT contract for fractions
 
 
 

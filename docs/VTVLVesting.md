@@ -6,7 +6,7 @@
 
 
 
-
+*Only users who have VTVLFraction NFT can claim The allocation will be divided into VTVLNFT amount(fraction amount). Each fractions will have same vesting schedule. Only differences are withdarwn amount and active status.*
 
 ## Methods
 
@@ -231,7 +231,7 @@ function getClaim() external view returns (uint40, uint40, uint40, uint40, uint2
 
 Basic getter for a claim.
 
-*Could be using public claims var, but this is cleaner in terms of naming. (getClaim(address) as opposed to claims(address)).*
+
 
 
 #### Returns
@@ -476,7 +476,7 @@ function renounceOwnership() external nonpayable
 function revokeClaim(uint256 _fractionalId) external nonpayable
 ```
 
-Allow an Owner to revoke a claim that is already active.
+Allow an Owner to revoke a claim for the fractional NFT that is already active.
 
 *The requirement is that a claim exists and that it&#39;s active.*
 
@@ -756,7 +756,7 @@ Withdraw the full claimable balance.
 
 | Name | Type | Description |
 |---|---|---|
-| _fractionalId | uint256 | - The fraction NFT Id that is going to withdraw with. |
+| _fractionalId | uint256 | - The fractional NFT Id that is going to withdraw with. |
 
 ### withdrawAdmin
 
