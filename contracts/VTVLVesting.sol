@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import "./Structure.sol";
+
 contract VTVLVesting is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -82,10 +84,25 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     @notice Construct the contract, taking the ERC20 token to be vested as the parameter.
     @dev The owner can set the contract in question when creating the contract.
      */
-    constructor(IERC20 _tokenAddress, address _owner) {
+    constructor(
+        IERC20 _tokenAddress,
+        address _owner,
+        address _recipient,
+        InputClaim memory _claim
+    ) {
         require(address(_tokenAddress) != address(0), "INVALID_ADDRESS");
         tokenAddress = _tokenAddress;
         _transferOwnership(_owner);
+
+        _createClaimUnchecked(
+            _recipient,
+            _claim.startTimestamp,
+            _claim.endTimestamp,
+            _claim.cliffReleaseTimestamp,
+            _claim.releaseIntervalSecs,
+            _claim.linearVestAmount,
+            _claim.cliffAmount
+        );
     }
 
     /**
@@ -149,11 +166,10 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     @param _claim The claim in question
     @param _referenceTs Timestamp for which we're calculating
      */
-    function _baseVestedAmount(Claim memory _claim, uint40 _referenceTs)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _baseVestedAmount(
+        Claim memory _claim,
+        uint40 _referenceTs
+    ) internal pure returns (uint256) {
         // If no schedule is created
         if (!_claim.isActive && _claim.deactivationTimestamp == 0) {
             return 0;
@@ -205,11 +221,10 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     @param _referenceTs - The timestamp at which we want to calculate the vested amount.
     @dev Simply call the _baseVestedAmount for the claim in question
     */
-    function vestedAmount(address _recipient, uint40 _referenceTs)
-        public
-        view
-        returns (uint256)
-    {
+    function vestedAmount(
+        address _recipient,
+        uint40 _referenceTs
+    ) public view returns (uint256) {
         Claim memory _claim = claims[_recipient];
         uint40 vestEndTimestamp = _claim.isActive
             ? _referenceTs
@@ -222,11 +237,9 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     @dev This fn is somewhat superfluous, should probably be removed.
     @param _recipient - The address for whom we're calculating
      */
-    function finalVestedAmount(address _recipient)
-        public
-        view
-        returns (uint256)
-    {
+    function finalVestedAmount(
+        address _recipient
+    ) public view returns (uint256) {
         Claim memory _claim = claims[_recipient];
         return _baseVestedAmount(_claim, _claim.endTimestamp);
     }
@@ -247,11 +260,9 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
             amount from the vestedAmount at this moment. Vesting date is either the end timestamp or the deactivation timestamp.
     @param _recipient - The address for whom we're calculating
     */
-    function finalClaimableAmount(address _recipient)
-        external
-        view
-        returns (uint256)
-    {
+    function finalClaimableAmount(
+        address _recipient
+    ) external view returns (uint256) {
         Claim storage _claim = claims[_recipient];
         uint40 vestEndTimestamp = _claim.isActive
             ? _claim.endTimestamp
@@ -292,7 +303,7 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
         uint40 _endTimestamp,
         uint40 _cliffReleaseTimestamp,
         uint40 _releaseIntervalSecs,
-        uint112 _linearVestAmount,
+        uint256 _linearVestAmount,
         uint112 _cliffAmount
     ) private hasNoClaim(_recipient) {
         require(_recipient != address(0), "INVALID_ADDRESS");
@@ -337,11 +348,11 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
         uint256 allocatedAmount = _cliffAmount + _linearVestAmount;
 
         // Still no effects up to this point (and tokenAddress is selected by contract deployer and is immutable), so no reentrancy risk
-        require(
-            tokenAddress.balanceOf(address(this)) >=
-                numTokensReservedForVesting + allocatedAmount,
-            "INSUFFICIENT_BALANCE"
-        );
+        // require(
+        //     tokenAddress.balanceOf(address(this)) >=
+        //         numTokensReservedForVesting + allocatedAmount,
+        //     "INSUFFICIENT_BALANCE"
+        // );
 
         // Done with checks
 
@@ -463,11 +474,9 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     @notice Admin withdrawal of the unallocated tokens.
     @param _amountRequested - the amount that we want to withdraw
      */
-    function withdrawAdmin(uint256 _amountRequested)
-        public
-        onlyOwner
-        nonReentrant
-    {
+    function withdrawAdmin(
+        uint256 _amountRequested
+    ) public onlyOwner nonReentrant {
         // Allow the owner to withdraw any balance not currently tied up in contracts.
         uint256 amountRemaining = amountAvailableToWithdrawByAdmin();
 
@@ -486,11 +495,9 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     @notice Allow an Owner to revoke a claim that is already active.
     @dev The requirement is that a claim exists and that it's active.
     */
-    function revokeClaim(address _recipient)
-        external
-        onlyOwner
-        hasActiveClaim(_recipient)
-    {
+    function revokeClaim(
+        address _recipient
+    ) external onlyOwner hasActiveClaim(_recipient) {
         // Fetch the claim
         Claim storage _claim = claims[_recipient];
 
@@ -529,11 +536,9 @@ contract VTVLVesting is Ownable, ReentrancyGuard {
     Note that the token to be withdrawn can't be the one at "tokenAddress".
     @param _otherTokenAddress - the token which we want to withdraw
      */
-    function withdrawOtherToken(IERC20 _otherTokenAddress)
-        external
-        onlyOwner
-        nonReentrant
-    {
+    function withdrawOtherToken(
+        IERC20 _otherTokenAddress
+    ) external onlyOwner nonReentrant {
         require(_otherTokenAddress != tokenAddress, "INVALID_TOKEN"); // tokenAddress address is already sure to be nonzero due to constructor
         uint256 bal = _otherTokenAddress.balanceOf(address(this));
         require(bal > 0, "INSUFFICIENT_BALANCE");
