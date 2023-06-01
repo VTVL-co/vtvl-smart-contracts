@@ -426,7 +426,7 @@ describe("Claim creation", async function () {
         initialSupplyTokens,
       });
     const balance = await tokenContract.balanceOf(vestingContract.address);
-    // Try wiht an amount that should succeed twice, but not three times
+    // Try with an amount that should succeed twice, but not three times
     const amt = balance.mul(3).div(8);
     await vestingContract.createClaim(
       await randomAddress(),
@@ -744,7 +744,7 @@ describe("Withdraw", async () => {
     expect(balanceAfterFirstWithdraw).to.be.equal(
       initialBalance.add(cliffAmount + linearVestAmount * 0.1)
     );
-    await ethers.provider.send("evm_mine", [startTimestamp + 17]); // Fast forward until the moment nothign further has vested
+    await ethers.provider.send("evm_mine", [startTimestamp + 17]); // Fast forward until the moment nothing further has vested
     // Now we don't have anything to withdraw again - as we've withdrawn just before the last vest
     await expect(vestingContract.withdraw()).to.be.revertedWith(
       "NOTHING_TO_WITHDRAW"
@@ -767,7 +767,7 @@ describe("Withdraw", async () => {
     });
     const releaseIntervalSecs = 1;
     // We've created a claim for a random address (not for our user)
-    // But we'll try to withdraw from our address, whcih should fail as we have no claim
+    // But we'll try to withdraw from our address, which should fail as we have no claim
     await vestingContract.createClaim(
       await randomAddress(),
       startTimestamp,
@@ -1105,7 +1105,7 @@ describe("Vested amount", async () => {
       recipientAddress,
       startTimestamp.add(1)
     );
-    // 10% vested, ie 10 out of 10000, so add that to the cliff amound
+    // 10% vested, ie 10 out of 10000, so add that to the cliff amount
     expect(vestAmt).to.be.equal(cliffAmount.add(10));
   });
   [10, 25, 45, 50, 70, 80, 95].forEach((percentage) => {

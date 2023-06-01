@@ -5,7 +5,7 @@
 //  1. When called with initialSupply_ = 0 and maxSupply_ = 0, check that it fails with INVALID_AMOUNT.
 //  2. When called with initialSupply_ > 0 and maxSupply_ > 0  and initialSupply_ > maxSupply, check that it fails with INVALID_AMOUNT.
 //  3. When called with initialSupply_ = 0 and maxSupply_ > 0, check that it sets maxSupply := maxSupply_
-//  4. When called with initialSupply_ > 0 and maxSupply_ > 0, check that it sets maxSupply := maxSupply_ - initialSupply, and that initialSupply_ is asigned to the sender
+//  4. When called with initialSupply_ > 0 and maxSupply_ > 0, check that it sets maxSupply := maxSupply_ - initialSupply, and that initialSupply_ is assigned to the sender
 //  5. When called with initialSupply_ > 0 and maxSupply_ = 0, check that it sets maxSupply_= 0 and assigns initialSupply to the sender
 
 // B) Mint tests

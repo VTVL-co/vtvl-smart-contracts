@@ -1,6 +1,6 @@
 # VTVL Hardhat project
 
-This folder contains the vesting (and other auxilliary) smart contracts used for *vtvl* vesting project. It is set up within a Hardhat environment, so the usual hardhat tools are available.
+This folder contains the vesting (and other auxiliary) smart contracts used for *vtvl* vesting project. It is set up within a Hardhat environment, so the usual hardhat tools are available.
 
 # Contracts
 
@@ -89,4 +89,4 @@ Collect the test coverage information.
 ```shell
 npx hardhat run --network localhost scripts/deploy.js
 ```
-Runs an arbitrary script. This example assumes script *deploy.js* from the *scripts* dir, but an arbirary script can be chosen. *--network* option gives us the possibility to select the network on which the script is executed. Options include all networks defined within *hardhat.config.js* file, so it can be configured to use Ethereum testnets or even mainnet.
+Runs an arbitrary script. This example assumes script *deploy.js* from the *scripts* dir, but an arbitrary script can be chosen. *--network* option gives us the possibility to select the network on which the script is executed. Options include all networks defined within *hardhat.config.js* file, so it can be configured to use Ethereum testnets or even mainnet.
