@@ -10,18 +10,24 @@ export const SUPPORTED_CHAIN_NAMES = [
   "goerli",
   "base-goerli",
   "satoshi",
+  "satoshitest",
+  "canto",
 ];
 
 export const SUPPORTED_RPC_ENDPOINTS = {
   mainnet: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
   goerli: `https://goerli.infura.io/v3/${INFURA_PROJECT_ID}`,
   "base-goerli": "https://goerli.base.org",
-  satoshi: "https://rpc.satoshichain.io",
+  satoshi: "https://mainnet-rpc.satoshichain.io",
+  satoshitest: "https://testnet-rpc.satoshichain.io",
+  canto: "https://canto-testnet.plexnode.wtf",
 } as const;
 
 export const SUPPORTED_CHAIN_IDS = {
   mainnet: 1,
   goerli: 5,
   "base-goerli": 84531,
-  satoshi: 5758,
+  satoshi: 12009,
+  satoshitest: 5758,
+  canto: 7701,
 } as const;

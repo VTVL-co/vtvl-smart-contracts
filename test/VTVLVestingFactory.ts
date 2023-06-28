@@ -1525,89 +1525,6 @@ describe("Apply Fee", async () => {
     expect(await vestingContract.feeReceiver()).to.be.equal(feeReceiver);
   });
 
-  it("should not take the fee when the token is not valuable and take USDC as fee", async () => {
-    const startTimestamp = (await getLastBlockTs()) + 100;
-    const endTimestamp = startTimestamp + 1000;
-    const { tokenContract, vestingContract } =
-      await createPrefundedVestingContract({
-        tokenName,
-        tokenSymbol,
-        initialSupplyTokens,
-      });
-    await vestingContract.createClaim({
-      recipient: owner2.address,
-      startTimestamp,
-      endTimestamp,
-      cliffReleaseTimestamp,
-      releaseIntervalSecs,
-      linearVestAmount,
-      cliffAmount,
-    });
-
-    const ts = startTimestamp + 500;
-    await ethers.provider.send("evm_mine", [ts]); // Make sure we're at half of the interval
-
-    await factoryContract.setFee(vestingContract.address, 100); // set the fee 1%
-    const feeAmount = linearVestAmount.div(2).mul(100).div(10000);
-
-    //transfer USDC to the user so that he can withdraw
-    await network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [USDC_IMPERSONATE_ACCOUNT],
-    });
-    const usdcSigner = await ethers.getSigner(USDC_IMPERSONATE_ACCOUNT);
-
-    //get USDC contract
-    const tokenContractFactory = await ethers.getContractFactory(
-      "TestERC20Token"
-    );
-    const usdcContract = tokenContractFactory.attach(USDC_ADDRESS);
-
-    //transfer USDC from usdcSigner to owner2
-    await usdcContract
-      .connect(usdcSigner)
-      .transfer(owner2.address, BigNumber.from(20000));
-
-    await usdcContract
-      .connect(owner2)
-      .approve(vestingContract.address, BigNumber.from(10000));
-
-    await expect(() =>
-      vestingContract.connect(owner2).withdraw(0)
-    ).to.changeTokenBalance(tokenContract, owner2, linearVestAmount.div(2));
-
-    expect(await usdcContract.balanceOf(factoryContract.address)).to.be.equal(
-      feeAmount.mul(3).div(10)
-    );
-  });
-
-  it("Should revert if user didn't approve USDC", async () => {
-    const startTimestamp = (await getLastBlockTs()) + 100;
-    const endTimestamp = startTimestamp + 1000;
-    const { vestingContract } = await createPrefundedVestingContract({
-      tokenName,
-      tokenSymbol,
-      initialSupplyTokens,
-    });
-    await vestingContract.createClaim({
-      recipient: owner2.address,
-      startTimestamp,
-      endTimestamp,
-      cliffReleaseTimestamp,
-      releaseIntervalSecs,
-      linearVestAmount,
-      cliffAmount,
-    });
-    const ts = startTimestamp + 500;
-    await ethers.provider.send("evm_mine", [ts]); // Make sure we're at half of the interval
-
-    await factoryContract.setFee(vestingContract.address, 100); // set the fee 1%
-
-    await expect(vestingContract.connect(owner2).withdraw(0)).to.revertedWith(
-      "ERC20: transfer amount exceeds allowance"
-    );
-  });
-
   it("should take the fee when the token price is greater than 0.3$", async () => {
     const startTimestamp = (await getLastBlockTs()) + 100;
     const endTimestamp = startTimestamp + 1000;
@@ -1716,17 +1633,12 @@ describe("Apply Fee", async () => {
     const startTimestamp = (await getLastBlockTs()) + 100;
     const endTimestamp = startTimestamp + 1000;
 
-    //get USDC contract
-    const tokenContractFactory = await ethers.getContractFactory(
-      "TestERC20Token"
-    );
-    const usdcContract = tokenContractFactory.attach(USDC_ADDRESS);
-
-    const { vestingContract } = await createPrefundedVestingContract({
-      tokenName,
-      tokenSymbol,
-      initialSupplyTokens,
-    });
+    const { tokenContract, vestingContract } =
+      await createPrefundedVestingContract({
+        tokenName,
+        tokenSymbol,
+        initialSupplyTokens,
+      });
     await vestingContract.createClaim({
       recipient: owner2.address,
       startTimestamp,
@@ -1739,21 +1651,6 @@ describe("Apply Fee", async () => {
     const ts = startTimestamp + 500;
     await ethers.provider.send("evm_mine", [ts]); // Make sure we're at half of the interval
 
-    // transfer USDC to the user so that he can pay USDC
-    await network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [USDC_IMPERSONATE_ACCOUNT],
-    });
-    const usdcSigner = await ethers.getSigner(USDC_IMPERSONATE_ACCOUNT);
-    //transfer USDC from usdcSigner to owner2
-    await usdcContract
-      .connect(usdcSigner)
-      .transfer(owner2.address, BigNumber.from(20000));
-
-    await usdcContract
-      .connect(owner2)
-      .approve(vestingContract.address, BigNumber.from(10000));
-
     await factoryContract.setFee(vestingContract.address, 100); // set the fee 1%
     await factoryContract.updateFeeReceiver(
       vestingContract.address,
@@ -1763,7 +1660,7 @@ describe("Apply Fee", async () => {
 
     await expect(() =>
       vestingContract.connect(owner2).withdraw(0)
-    ).to.changeTokenBalance(usdcContract, recipient, feeAmount.mul(3).div(10));
+    ).to.changeTokenBalance(tokenContract, recipient, feeAmount);
   });
 });
 

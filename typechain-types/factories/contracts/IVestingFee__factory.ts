@@ -36,19 +36,6 @@ const _abi = [
     stateMutability: "nonpayable",
     type: "function",
   },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_threshold",
-        type: "uint256",
-      },
-    ],
-    name: "updateconversionThreshold",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
 ] as const;
 
 export class IVestingFee__factory {

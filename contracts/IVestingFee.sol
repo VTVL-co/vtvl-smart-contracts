@@ -6,5 +6,5 @@ interface IVestingFee {
 
     function updateFeeReceiver(address _newReceiver) external;
 
-    function updateconversionThreshold(uint256 _threshold) external;
+    // function updateconversionThreshold(uint256 _threshold) external;
 }

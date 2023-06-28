@@ -26,14 +26,10 @@ export interface IVestingFeeInterface extends utils.Interface {
   functions: {
     "setFee(uint256)": FunctionFragment;
     "updateFeeReceiver(address)": FunctionFragment;
-    "updateconversionThreshold(uint256)": FunctionFragment;
   };
 
   getFunction(
-    nameOrSignatureOrTopic:
-      | "setFee"
-      | "updateFeeReceiver"
-      | "updateconversionThreshold"
+    nameOrSignatureOrTopic: "setFee" | "updateFeeReceiver"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -44,18 +40,10 @@ export interface IVestingFeeInterface extends utils.Interface {
     functionFragment: "updateFeeReceiver",
     values: [string]
   ): string;
-  encodeFunctionData(
-    functionFragment: "updateconversionThreshold",
-    values: [BigNumberish]
-  ): string;
 
   decodeFunctionResult(functionFragment: "setFee", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "updateFeeReceiver",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "updateconversionThreshold",
     data: BytesLike
   ): Result;
 
@@ -98,11 +86,6 @@ export interface IVestingFee extends BaseContract {
       _newReceiver: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
-
-    updateconversionThreshold(
-      _threshold: BigNumberish,
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
   };
 
   setFee(
@@ -115,21 +98,11 @@ export interface IVestingFee extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  updateconversionThreshold(
-    _threshold: BigNumberish,
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
   callStatic: {
     setFee(_feePercent: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     updateFeeReceiver(
       _newReceiver: string,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    updateconversionThreshold(
-      _threshold: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -146,11 +119,6 @@ export interface IVestingFee extends BaseContract {
       _newReceiver: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
-
-    updateconversionThreshold(
-      _threshold: BigNumberish,
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -161,11 +129,6 @@ export interface IVestingFee extends BaseContract {
 
     updateFeeReceiver(
       _newReceiver: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    updateconversionThreshold(
-      _threshold: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
   };

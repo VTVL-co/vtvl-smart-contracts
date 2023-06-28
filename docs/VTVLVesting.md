@@ -10,40 +10,6 @@
 
 ## Methods
 
-### UNISWAP_V3_FACTORY_ADDRESS
-
-```solidity
-function UNISWAP_V3_FACTORY_ADDRESS() external view returns (address)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
-### USDC_ADDRESS
-
-```solidity
-function USDC_ADDRESS() external view returns (address)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
 ### allVestingRecipients
 
 ```solidity
@@ -94,23 +60,6 @@ Calculates how much can we claim, by subtracting the already withdrawn amount fr
 |---|---|---|
 | _recipient | address | - The address for whom we&#39;re calculating |
 | _scheduleIndex | uint256 | - The index of the vesting schedules of the recipient. |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | undefined |
-
-### conversionThreshold
-
-```solidity
-function conversionThreshold() external view returns (uint256)
-```
-
-
-
-
-
 
 #### Returns
 
@@ -275,29 +224,6 @@ function getNumberOfVestings(address _recipient) external view returns (uint256)
 |---|---|---|
 | _0 | uint256 | undefined |
 
-### getTokenPrice
-
-```solidity
-function getTokenPrice(uint128 amount, uint32 secondsAgo) external view returns (uint256 amountOut)
-```
-
-
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| amount | uint128 | undefined |
-| secondsAgo | uint32 | undefined |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| amountOut | uint256 | undefined |
-
 ### numTokensReservedForVesting
 
 ```solidity
@@ -341,23 +267,6 @@ function owner() external view returns (address)
 
 
 *Returns the address of the current owner.*
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
-### pool
-
-```solidity
-function pool() external view returns (address)
-```
-
-
-
-
 
 
 #### Returns
@@ -413,7 +322,7 @@ function setFee(uint256 _feePercent) external nonpayable
 ### tokenAddress
 
 ```solidity
-function tokenAddress() external view returns (contract IERC20Extented)
+function tokenAddress() external view returns (contract IERC20)
 ```
 
 Address of the token that we&#39;re vesting
@@ -425,7 +334,7 @@ Address of the token that we&#39;re vesting
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | contract IERC20Extented | undefined |
+| _0 | contract IERC20 | undefined |
 
 ### transferOwnership
 
@@ -458,22 +367,6 @@ function updateFeeReceiver(address _newReceiver) external nonpayable
 | Name | Type | Description |
 |---|---|---|
 | _newReceiver | address | undefined |
-
-### updateconversionThreshold
-
-```solidity
-function updateconversionThreshold(uint256 _threshold) external nonpayable
-```
-
-
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| _threshold | uint256 | undefined |
 
 ### vestedAmount
 
@@ -630,7 +523,7 @@ Emitted when someone withdraws a vested amount
 event FeeReceived(address indexed _recipient, uint256 _feeAmount, uint256 _scheduleIndex, address _tokenAddress)
 ```
 
-Emitted when receiving the fee
+Emitted when receiving the fee.
 
 
 
@@ -659,20 +552,6 @@ event OwnershipTransferred(address indexed previousOwner, address indexed newOwn
 |---|---|---|
 | previousOwner `indexed` | address | undefined |
 | newOwner `indexed` | address | undefined |
-
-
-
-## Errors
-
-### T
-
-```solidity
-error T()
-```
-
-
-
-
 
 
 

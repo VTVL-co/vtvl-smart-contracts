@@ -39,7 +39,7 @@ contract VTVLVestingFactory is Ownable {
      * @param _feePercent The percent of fee.
      */
     function createVestingContract(
-        IERC20Extented _tokenAddress,
+        IERC20 _tokenAddress,
         uint256 _feePercent
     ) public {
         VTVLVesting vestingContract = new VTVLVesting(
@@ -79,17 +79,6 @@ contract VTVLVestingFactory is Ownable {
     }
 
     /**
-     * @notice Set the minimum price that will take the fee.
-     * @dev 0.3 will be 30.
-     */
-    function updateconversionThreshold(
-        address _vestingContract,
-        uint256 _threshold
-    ) external onlyOwner onlyVestingContract(_vestingContract) {
-        IVestingFee(_vestingContract).updateconversionThreshold(_threshold);
-    }
-
-    /**
      * @notice Withdraw the token to the receiver.
      */
     function withdraw(
@@ -99,64 +88,4 @@ contract VTVLVestingFactory is Ownable {
         uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
         IERC20(_tokenAddress).transfer(_receiver, balance);
     }
-
-    // We will need the below functions later.
-
-    // /**
-    //  * @notice Create Vesting contract with funding and schedules.
-    //  * @dev This will deposit funds and create the vesting schedules as well.
-    //  * @param _tokenAddress Vesting Fund token address.
-    //  */
-    // function createVestingContractWithSchedules(
-    //     IERC20 _tokenAddress,
-    //     ClaimInput[] calldata claimInputs
-    // ) public {
-    //     require(claimInputs.length != 0, "Invalid Claims");
-
-    //     VTVLVesting vestingContract = new VTVLVesting(
-    //         _tokenAddress,
-    //         msg.sender
-    //     );
-
-    //     uint256 _depositAmount = _calculateAmount(claimInputs);
-
-    //     _deposit(_tokenAddress, _depositAmount, address(vestingContract));
-
-    //     vestingContract.createClaimsBatch(claimInputs);
-
-    //     emit CreateVestingContract(address(vestingContract), msg.sender);
-    // }
-
-    // function _deposit(
-    //     IERC20 _tokenAddress,
-    //     uint256 _amount,
-    //     address _contractAddress
-    // ) private {
-    //     uint256 userBalance = _tokenAddress.balanceOf(msg.sender);
-
-    //     if (userBalance >= _amount) {
-    //         _tokenAddress.safeTransferFrom(
-    //             msg.sender,
-    //             address(_contractAddress),
-    //             _amount
-    //         );
-    //     }
-    // }
-
-    // function _calculateAmount(
-    //     ClaimInput[] calldata _cliamInputs
-    // ) private pure returns (uint256) {
-    //     uint256 len = _cliamInputs.length;
-    //     uint256 amount;
-    //     for (uint256 i = 0; i < len; ) {
-    //         unchecked {
-    //             amount +=
-    //                 _cliamInputs[i].linearVestAmount +
-    //                 _cliamInputs[i].cliffAmount;
-    //             ++i;
-    //         }
-    //     }
-
-    //     return amount;
-    // }
 }

@@ -13,7 +13,7 @@ Create Vesting contract
 ### createVestingContract
 
 ```solidity
-function createVestingContract(contract IERC20Extented _tokenAddress, uint256 _feePercent) external nonpayable
+function createVestingContract(contract IERC20 _tokenAddress, uint256 _feePercent) external nonpayable
 ```
 
 Create Vesting contract without funding.
@@ -24,7 +24,7 @@ Create Vesting contract without funding.
 
 | Name | Type | Description |
 |---|---|---|
-| _tokenAddress | contract IERC20Extented | Vesting Fund token address. |
+| _tokenAddress | contract IERC20 | Vesting Fund token address. |
 | _feePercent | uint256 | The percent of fee. |
 
 ### owner
@@ -104,23 +104,6 @@ Set the fee recipient of Vesting contract.
 |---|---|---|
 | _vestingContract | address | undefined |
 | _newReceiver | address | undefined |
-
-### updateconversionThreshold
-
-```solidity
-function updateconversionThreshold(address _vestingContract, uint256 _threshold) external nonpayable
-```
-
-Set the minimum price that will take the fee.
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| _vestingContract | address | undefined |
-| _threshold | uint256 | undefined |
 
 ### withdraw
 

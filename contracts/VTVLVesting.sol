@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./IVestingFee.sol";
-import "./UniswapOracle.sol";
 
 struct ClaimInput {
     uint40 startTimestamp; // When does the vesting start (40 bits is enough for TS)
@@ -20,8 +19,8 @@ struct ClaimInput {
     address recipient; // the recipient address
 }
 
-contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
-    using SafeERC20 for IERC20Extented;
+contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee {
+    using SafeERC20 for IERC20;
 
     /**
     @notice How many tokens are already allocated to vesting schedules.
@@ -53,6 +52,11 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
         uint40 deactivationTimestamp;
     }
 
+    /**
+    @notice Address of the token that we're vesting
+     */
+    IERC20 public immutable tokenAddress;
+
     // Mapping every user address to his/her Claim
     // This could be array because a recipient can have multiple schdules.
     // Only one Claim possible per address
@@ -64,8 +68,6 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
     address private immutable factoryAddress;
     uint256 public feePercent; // Fee percent.  500 means 5%, 1 means 0.01 %
     address public feeReceiver; // The receier address that will get the fee.
-
-    uint256 public conversionThreshold;
 
     // Events:
     /**
@@ -88,7 +90,6 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
 
     /**
     @notice Emitted when receiving the fee.
-    @dev _tokenAddress may be vesting token address or USDC address depending on the token price.
     */
     event FeeReceived(
         address indexed _recipient,
@@ -118,18 +119,13 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
     @notice Construct the contract, taking the ERC20 token to be vested as the parameter.
     @dev The owner can set the contract in question when creating the contract.
      */
-    constructor(
-        IERC20Extented _tokenAddress,
-        uint256 _feePercent,
-        address _owner
-    ) UniswapOracle(_tokenAddress) {
+    constructor(IERC20 _tokenAddress, uint256 _feePercent, address _owner) {
+        require(address(_tokenAddress) != address(0), "INVALID_ADDRESS");
         _transferOwnership(_owner);
         factoryAddress = msg.sender;
         feeReceiver = msg.sender;
         feePercent = _feePercent;
-
-        // mint price is 0.3 USD
-        conversionThreshold = 30;
+        tokenAddress = _tokenAddress;
     }
 
     /**
@@ -479,7 +475,6 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
 
     /**
      * @notice transfer the token to the user and fee receiver.
-     * // if the token price is samller than the conversionThreshold, then it will transfer USDC to the recipient.
      * @param _amount The total amount that will be transfered.
      * @param _scheduleIndex The index of the schedule.
      */
@@ -487,50 +482,14 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
         if (feePercent > 0) {
             uint256 _feeAmount = calculateFee(_amount);
 
-            if (pool != address(0)) {
-                // calcualte the price when 10 secs ago.
-                uint256 price = getTokenPrice(uint128(_amount), 10);
-                if (price >= conversionThreshold) {
-                    tokenAddress.safeTransfer(
-                        _msgSender(),
-                        _amount - _feeAmount
-                    );
-                    tokenAddress.safeTransfer(feeReceiver, _feeAmount);
-                    emit FeeReceived(
-                        feeReceiver,
-                        _feeAmount,
-                        _scheduleIndex,
-                        address(tokenAddress)
-                    );
-                } else {
-                    tokenAddress.safeTransfer(_msgSender(), _amount);
-                    IERC20Extented(USDC_ADDRESS).safeTransferFrom(
-                        msg.sender,
-                        feeReceiver,
-                        (_feeAmount * conversionThreshold) / 100
-                    );
-                    emit FeeReceived(
-                        feeReceiver,
-                        (_feeAmount * conversionThreshold) / 100,
-                        _scheduleIndex,
-                        address(USDC_ADDRESS)
-                    );
-                }
-            } else {
-                tokenAddress.safeTransfer(_msgSender(), _amount);
-                IERC20Extented(USDC_ADDRESS).safeTransferFrom(
-                    msg.sender,
-                    feeReceiver,
-                    (_feeAmount * conversionThreshold) / 100
-                );
-
-                emit FeeReceived(
-                    feeReceiver,
-                    (_feeAmount * conversionThreshold) / 100,
-                    _scheduleIndex,
-                    address(USDC_ADDRESS)
-                );
-            }
+            tokenAddress.safeTransfer(_msgSender(), _amount - _feeAmount);
+            tokenAddress.safeTransfer(feeReceiver, _feeAmount);
+            emit FeeReceived(
+                feeReceiver,
+                _feeAmount,
+                _scheduleIndex,
+                address(tokenAddress)
+            );
         } else {
             tokenAddress.safeTransfer(_msgSender(), _amount);
         }
@@ -640,11 +599,5 @@ contract VTVLVesting is Ownable, ReentrancyGuard, IVestingFee, UniswapOracle {
 
     function updateFeeReceiver(address _newReceiver) external onlyFactory {
         feeReceiver = _newReceiver;
-    }
-
-    function updateconversionThreshold(
-        uint256 _threshold
-    ) external onlyFactory {
-        conversionThreshold = _threshold;
     }
 }
