@@ -35,10 +35,12 @@
     "typescript": "^5.1.3"
   },
   "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.5",
     "@openzeppelin/test-helpers": "^0.5.16",
     "@primitivefi/hardhat-dodoc": "^0.2.3",
     "@uniswap/v3-periphery": "Uniswap/v3-periphery#0.8",
     "chance": "^1.1.11",
+    "csvtojson": "^2.0.10",
     "ethers": "^5.0.0",
     "hardhat-contract-sizer": "^2.9.0",
     "moralis-admin-cli": "^2.1.16"
