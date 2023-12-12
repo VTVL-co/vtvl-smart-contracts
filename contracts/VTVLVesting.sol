@@ -7,6 +7,10 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./IVestingFee.sol";
 import "./AccessProtected.sol";
 
+interface IERC20Extented is IERC20 {
+    function decimals() external view returns (uint8);
+}
+
 struct ClaimInput {
     uint40 startTimestamp; // When does the vesting start (40 bits is enough for TS)
     uint40 endTimestamp; // When does the vesting end - the vesting goes linearly between the start and end timestamps
