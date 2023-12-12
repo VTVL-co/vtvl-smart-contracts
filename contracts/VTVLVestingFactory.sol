@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./VTVLVesting.sol";
-import "./IVestingFee.sol";
 
 /// @title Vesting Factory contract
 /// @notice Create Vesting contract
@@ -76,17 +75,6 @@ contract VTVLVestingFactory is Ownable {
         address _newReceiver
     ) external onlyOwner onlyVestingContract(_vestingContract) {
         IVestingFee(_vestingContract).updateFeeReceiver(_newReceiver);
-    }
-
-    /**
-     * @notice Set the minimum price that will take the fee.
-     * @dev 0.3 will be 30.
-     */
-    function updateconversionThreshold(
-        address _vestingContract,
-        uint256 _threshold
-    ) external onlyOwner onlyVestingContract(_vestingContract) {
-        IVestingFee(_vestingContract).updateconversionThreshold(_threshold);
     }
 
     /**

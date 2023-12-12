@@ -105,23 +105,6 @@ Set the fee recipient of Vesting contract.
 | _vestingContract | address | undefined |
 | _newReceiver | address | undefined |
 
-### updateconversionThreshold
-
-```solidity
-function updateconversionThreshold(address _vestingContract, uint256 _threshold) external nonpayable
-```
-
-Set the minimum price that will take the fee.
-
-*0.3 will be 30.*
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| _vestingContract | address | undefined |
-| _threshold | uint256 | undefined |
-
 ### withdraw
 
 ```solidity

@@ -10,57 +10,6 @@
 
 ## Methods
 
-### UNISWAP_V3_FACTORY_ADDRESS
-
-```solidity
-function UNISWAP_V3_FACTORY_ADDRESS() external view returns (address)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
-### USDC_ADDRESS
-
-```solidity
-function USDC_ADDRESS() external view returns (address)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
-### USDC_DECIMAL
-
-```solidity
-function USDC_DECIMAL() external view returns (uint128)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint128 | undefined |
-
 ### amountAvailableToWithdrawByAdmin
 
 ```solidity
@@ -275,28 +224,6 @@ function getNumberOfVestings(address _recipient) external view returns (uint256)
 |---|---|---|
 | _0 | uint256 | undefined |
 
-### getTokenPrice
-
-```solidity
-function getTokenPrice(uint32 secondsAgo) external view returns (uint256 amountOut)
-```
-
-
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| secondsAgo | uint32 | undefined |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| amountOut | uint256 | undefined |
-
 ### isAdmin
 
 ```solidity
@@ -335,23 +262,6 @@ How many tokens are already allocated to vesting schedules.
 | Name | Type | Description |
 |---|---|---|
 | _0 | uint256 | undefined |
-
-### pool
-
-```solidity
-function pool() external view returns (address)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
 
 ### revokeClaim
 
@@ -409,7 +319,7 @@ function setFee(uint256 _feePercent) external nonpayable
 function tokenAddress() external view returns (contract IERC20Extented)
 ```
 
-Address of the token that we&#39;re vesting
+
 
 
 
@@ -419,23 +329,6 @@ Address of the token that we&#39;re vesting
 | Name | Type | Description |
 |---|---|---|
 | _0 | contract IERC20Extented | undefined |
-
-### tokenDecimal
-
-```solidity
-function tokenDecimal() external view returns (uint128)
-```
-
-
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint128 | undefined |
 
 ### updateFeeReceiver
 
@@ -452,22 +345,6 @@ function updateFeeReceiver(address _newReceiver) external nonpayable
 | Name | Type | Description |
 |---|---|---|
 | _newReceiver | address | undefined |
-
-### updateconversionThreshold
-
-```solidity
-function updateconversionThreshold(uint256 _threshold) external nonpayable
-```
-
-
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| _threshold | uint256 | undefined |
 
 ### vestedAmount
 
@@ -653,20 +530,6 @@ Emitted when receiving the fee.
 | _feeAmount  | uint256 | undefined |
 | _scheduleIndex  | uint256 | undefined |
 | _tokenAddress  | address | undefined |
-
-
-
-## Errors
-
-### T
-
-```solidity
-error T()
-```
-
-
-
-
 
 
 

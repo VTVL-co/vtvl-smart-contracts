@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./IVestingFee.sol";
-import "./UniswapOracle.sol";
 import "./AccessProtected.sol";
 
 struct ClaimInput {
@@ -20,13 +19,9 @@ struct ClaimInput {
     address recipient; // the recipient address
 }
 
-contract VTVLVesting is
-    AccessProtected,
-    ReentrancyGuard,
-    IVestingFee,
-    UniswapOracle
-{
+contract VTVLVesting is AccessProtected, ReentrancyGuard, IVestingFee {
     using SafeERC20 for IERC20Extented;
+    IERC20Extented public immutable tokenAddress;
 
     /**
     @notice How many tokens are already allocated to vesting schedules.
@@ -124,13 +119,11 @@ contract VTVLVesting is
         IERC20Extented _tokenAddress,
         uint256 _feePercent,
         address _owner
-    ) UniswapOracle(_tokenAddress) AccessProtected(_owner) {
+    ) AccessProtected(_owner) {
         factoryAddress = msg.sender;
         feeReceiver = msg.sender;
         feePercent = _feePercent;
-
-        // mint price is 0.3 USD
-        conversionThreshold = 30;
+        tokenAddress = _tokenAddress;
     }
 
     /**
@@ -473,53 +466,15 @@ contract VTVLVesting is
     function _transferToken(uint256 _amount, uint256 _scheduleIndex) private {
         if (feePercent > 0) {
             uint256 _feeAmount = calculateFee(_amount);
-            uint256 _realFeeAmount = (((_feeAmount * conversionThreshold) /
-                100) * 10 ** USDC_DECIMAL) / 10 ** tokenDecimal;
 
-            if (pool != address(0)) {
-                // calcualte the price when 10 secs ago.
-                uint256 price = getTokenPrice(10);
-                if (price >= conversionThreshold) {
-                    tokenAddress.safeTransfer(
-                        _msgSender(),
-                        _amount - _feeAmount
-                    );
-                    tokenAddress.safeTransfer(feeReceiver, _feeAmount);
-                    emit FeeReceived(
-                        feeReceiver,
-                        _feeAmount,
-                        _scheduleIndex,
-                        address(tokenAddress)
-                    );
-                } else {
-                    tokenAddress.safeTransfer(_msgSender(), _amount);
-                    IERC20Extented(USDC_ADDRESS).safeTransferFrom(
-                        msg.sender,
-                        feeReceiver,
-                        _realFeeAmount
-                    );
-                    emit FeeReceived(
-                        feeReceiver,
-                        _realFeeAmount,
-                        _scheduleIndex,
-                        address(USDC_ADDRESS)
-                    );
-                }
-            } else {
-                tokenAddress.safeTransfer(_msgSender(), _amount);
-                IERC20Extented(USDC_ADDRESS).safeTransferFrom(
-                    msg.sender,
-                    feeReceiver,
-                    _realFeeAmount
-                );
-
-                emit FeeReceived(
-                    feeReceiver,
-                    _realFeeAmount,
-                    _scheduleIndex,
-                    address(USDC_ADDRESS)
-                );
-            }
+            tokenAddress.safeTransfer(_msgSender(), _amount - _feeAmount);
+            tokenAddress.safeTransfer(feeReceiver, _feeAmount);
+            emit FeeReceived(
+                feeReceiver,
+                _feeAmount,
+                _scheduleIndex,
+                address(tokenAddress)
+            );
         } else {
             tokenAddress.safeTransfer(_msgSender(), _amount);
         }
@@ -630,11 +585,5 @@ contract VTVLVesting is
 
     function updateFeeReceiver(address _newReceiver) external onlyFactory {
         feeReceiver = _newReceiver;
-    }
-
-    function updateconversionThreshold(
-        uint256 _threshold
-    ) external onlyFactory {
-        conversionThreshold = _threshold;
     }
 }
