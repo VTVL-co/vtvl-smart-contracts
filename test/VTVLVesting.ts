@@ -1435,3 +1435,39 @@ describe("Long vest fail", async () => {
     ).to.be.equal("170000000000000000000000000");
   });
 });
+
+describe("Extra Actions", async () => {
+  let vestingContract: VestingContractType;
+
+  before(async () => {
+    const { vestingContract: _vc } = await createPrefundedVestingContract({
+      tokenName,
+      tokenSymbol,
+      initialSupplyTokens: 1000000000,
+    });
+    vestingContract = _vc;
+  });
+
+  it("fails on sending ether accidentally to vesting contract", async () => {
+    expect(
+      await ethers.provider.getBalance(vestingContract.address)
+    ).to.be.equal("0");
+
+    const [, bob] = await ethers.getSigners();
+
+    const tx = {
+      to: vestingContract.address,
+      value: ethers.utils.parseEther("1"),
+    };
+
+    try {
+      await bob.sendTransaction(tx);
+      expect.fail("Transaction should have reverted");
+    } catch (error: any) {
+      // Check if the error message matches the expected one
+      expect(error.message).to.include(
+        "function selector was not recognized and there's no fallback nor receive function"
+      );
+    }
+  });
+});
