@@ -150,11 +150,10 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @param _claim The claim in question
     @param _referenceTs Timestamp for which we're calculating
      */
-    function _baseVestedAmount(Claim memory _claim, uint40 _referenceTs)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _baseVestedAmount(
+        Claim memory _claim,
+        uint40 _referenceTs
+    ) internal pure returns (uint256) {
         // If no schedule is created
         if (!_claim.isActive && _claim.deactivationTimestamp == 0) {
             return 0;
@@ -178,11 +177,10 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         if (_referenceTs > _claim.startTimestamp) {
             uint40 currentVestingDurationSecs = _referenceTs -
                 _claim.startTimestamp; // How long since the start
-            
+
             // Next, we need to calculated the duration truncated to nearest releaseIntervalSecs
             uint40 truncatedCurrentVestingDurationSecs = (currentVestingDurationSecs /
-                    _claim.releaseIntervalSecs) *
-                    _claim.releaseIntervalSecs;
+                    _claim.releaseIntervalSecs) * _claim.releaseIntervalSecs;
 
             uint40 finalVestingDurationSecs = _claim.endTimestamp -
                 _claim.startTimestamp; // length of the interval
@@ -192,8 +190,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
             // truncatedCurrentVestingDurationSecs / finalVestingDurationSecs * linearVestAmount, so we can rewrite as below to avoid
             // rounding errors
             uint256 linearVestAmount = (_claim.linearVestAmount *
-                truncatedCurrentVestingDurationSecs) /
-                finalVestingDurationSecs;
+                truncatedCurrentVestingDurationSecs) / finalVestingDurationSecs;
 
             // Having calculated the linearVestAmount, simply add it to the vested amount
             vestAmt += linearVestAmount;
@@ -208,13 +205,14 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @param _referenceTs - The timestamp at which we want to calculate the vested amount.
     @dev Simply call the _baseVestedAmount for the claim in question
     */
-    function vestedAmount(address _recipient, uint40 _referenceTs)
-        public
-        view
-        returns (uint256)
-    {
+    function vestedAmount(
+        address _recipient,
+        uint40 _referenceTs
+    ) public view returns (uint256) {
         Claim memory _claim = claims[_recipient];
-        uint40 vestEndTimestamp = _claim.isActive ? _referenceTs : _claim.deactivationTimestamp;
+        uint40 vestEndTimestamp = _claim.isActive
+            ? _referenceTs
+            : _claim.deactivationTimestamp;
         return _baseVestedAmount(_claim, vestEndTimestamp);
     }
 
@@ -223,11 +221,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @dev This fn is somewhat superfluous, should probably be removed.
     @param _recipient - The address for whom we're calculating
      */
-    function finalVestedAmount(address _recipient)
-        public
-        view
-        returns (uint256)
-    {
+    function finalVestedAmount(
+        address _recipient
+    ) public view returns (uint256) {
         Claim memory _claim = claims[_recipient];
         return _baseVestedAmount(_claim, _claim.endTimestamp);
     }
@@ -236,13 +232,11 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Calculates how much can we claim, by subtracting the already withdrawn amount from the vestedAmount at this moment.
     @param _recipient - The address for whom we're calculating
     */
-    function claimableAmount(address _recipient)
-        public
-        view
-        returns (uint256)
-    {
+    function claimableAmount(address _recipient) public view returns (uint256) {
         Claim memory _claim = claims[_recipient];
-        return vestedAmount(_recipient, uint40(block.timestamp)) - _claim.amountWithdrawn;
+        return
+            vestedAmount(_recipient, uint40(block.timestamp)) -
+            _claim.amountWithdrawn;
     }
 
     /**
@@ -250,10 +244,16 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
             amount from the vestedAmount at this moment. Vesting date is either the end timestamp or the deactivation timestamp.
     @param _recipient - The address for whom we're calculating
     */
-    function finalClaimableAmount(address _recipient) external view returns (uint256) {
+    function finalClaimableAmount(
+        address _recipient
+    ) external view returns (uint256) {
         Claim storage _claim = claims[_recipient];
-        uint40 vestEndTimestamp = _claim.isActive ? _claim.endTimestamp : _claim.deactivationTimestamp;
-        return _baseVestedAmount(_claim, vestEndTimestamp) - _claim.amountWithdrawn;
+        uint40 vestEndTimestamp = _claim.isActive
+            ? _claim.endTimestamp
+            : _claim.deactivationTimestamp;
+        return
+            _baseVestedAmount(_claim, vestEndTimestamp) -
+            _claim.amountWithdrawn;
     }
 
     /** 
@@ -458,11 +458,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Admin withdrawal of the unallocated tokens.
     @param _amountRequested - the amount that we want to withdraw
      */
-    function withdrawAdmin(uint256 _amountRequested)
-        public
-        onlyAdmin
-        nonReentrant
-    {
+    function withdrawAdmin(
+        uint256 _amountRequested
+    ) public onlyAdmin nonReentrant {
         // Allow the owner to withdraw any balance not currently tied up in contracts.
         uint256 amountRemaining = amountAvailableToWithdrawByAdmin();
 
@@ -481,11 +479,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     @notice Allow an Owner to revoke a claim that is already active.
     @dev The requirement is that a claim exists and that it's active.
     */
-    function revokeClaim(address _recipient)
-        external
-        onlyAdmin
-        hasActiveClaim(_recipient)
-    {
+    function revokeClaim(
+        address _recipient
+    ) external onlyAdmin hasActiveClaim(_recipient) {
         // Fetch the claim
         Claim storage _claim = claims[_recipient];
 
@@ -501,7 +497,10 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
         _claim.deactivationTimestamp = uint40(block.timestamp);
 
         // The amount that is "reclaimed" is equal to the total allocation less what was already withdrawn
-        uint256 vestedSoFarAmt = vestedAmount(_recipient, uint40(block.timestamp));
+        uint256 vestedSoFarAmt = vestedAmount(
+            _recipient,
+            uint40(block.timestamp)
+        );
         uint256 amountRemaining = finalVestAmt - vestedSoFarAmt;
         numTokensReservedForVesting -= amountRemaining; // Reduces the allocation
 
@@ -521,11 +520,9 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     Note that the token to be withdrawn can't be the one at "tokenAddress".
     @param _otherTokenAddress - the token which we want to withdraw
      */
-    function withdrawOtherToken(IERC20 _otherTokenAddress)
-        external
-        onlyAdmin
-        nonReentrant
-    {
+    function withdrawOtherToken(
+        IERC20 _otherTokenAddress
+    ) external onlyAdmin nonReentrant {
         require(_otherTokenAddress != tokenAddress, "INVALID_TOKEN"); // tokenAddress address is already sure to be nonzero due to constructor
         uint256 bal = _otherTokenAddress.balanceOf(address(this));
         require(bal > 0, "INSUFFICIENT_BALANCE");
