@@ -525,7 +525,6 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     ) external onlyAdmin nonReentrant {
         require(_otherTokenAddress != tokenAddress, "INVALID_TOKEN"); // tokenAddress address is already sure to be nonzero due to constructor
         uint256 bal = _otherTokenAddress.balanceOf(address(this));
-        require(bal > 0, "INSUFFICIENT_BALANCE");
         _otherTokenAddress.safeTransfer(_msgSender(), bal);
     }
 
