@@ -247,7 +247,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
     function finalClaimableAmount(
         address _recipient
     ) external view returns (uint256) {
-        Claim storage _claim = claims[_recipient];
+        Claim memory _claim = claims[_recipient];
         uint40 vestEndTimestamp = _claim.isActive
             ? _claim.endTimestamp
             : _claim.deactivationTimestamp;
