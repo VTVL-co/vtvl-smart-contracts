@@ -52,13 +52,8 @@ contract VariableSupplyERC20Token is ERC20, AccessProtected {
 
     function mint(address account, uint256 amount) public onlyAdmin {
         require(account != address(0), "INVALID_ADDRESS");
-        // If we're using maxSupply, we need to make sure we respect it
-        // mintableSupply = 0 means mint at will
-        if (mintableSupply > 0) {
-            require(amount <= mintableSupply, "INVALID_AMOUNT");
-            // We need to reduce the amount only if we're using the limit, if not just leave it be
-            mintableSupply -= amount;
-        }
+        require(amount <= mintableSupply, "INVALID_AMOUNT");
+        mintableSupply -= amount;
         _mint(account, amount);
     }
 
