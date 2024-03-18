@@ -4,6 +4,7 @@
 export type { Ownable } from "./Ownable";
 export type { ERC20 } from "./ERC20";
 export type { IERC20Metadata } from "./IERC20Metadata";
+export type { IERC20Permit } from "./IERC20Permit";
 export type { IERC20 } from "./IERC20";
 export type { AccessProtected } from "./AccessProtected";
 export type { TestERC20Token } from "./TestERC20Token";
@@ -14,6 +15,7 @@ export type { VTVLVesting } from "./VTVLVesting";
 export { Ownable__factory } from "./factories/Ownable__factory";
 export { ERC20__factory } from "./factories/ERC20__factory";
 export { IERC20Metadata__factory } from "./factories/IERC20Metadata__factory";
+export { IERC20Permit__factory } from "./factories/IERC20Permit__factory";
 export { IERC20__factory } from "./factories/IERC20__factory";
 export { AccessProtected__factory } from "./factories/AccessProtected__factory";
 export { TestERC20Token__factory } from "./factories/TestERC20Token__factory";
