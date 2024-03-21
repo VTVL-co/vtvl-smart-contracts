@@ -401,7 +401,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
             "ARRAY_LENGTH_MISMATCH"
         );
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length;) {
             _createClaimUnchecked(
                 _recipients[i],
                 _startTimestamps[i],
@@ -411,6 +411,7 @@ contract VTVLVesting is Context, AccessProtected, ReentrancyGuard {
                 _linearVestAmounts[i],
                 _cliffAmounts[i]
             );
+            unchecked { ++i; }
         }
 
         // No need for separate emit, since createClaim will emit for each claim (and this function is merely a convenience/gas-saver for multiple claims creation)
